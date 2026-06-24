@@ -1,6 +1,7 @@
 import { app, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+import { autoUpdater } from 'electron-updater'
 import icon from '../../resources/icon.png?asset'
 import { registerAll } from './ipc'
 
@@ -52,6 +53,11 @@ app.whenReady().then(() => {
   // 注册所有 IPC 处理器
   registerAll()
   createWindow()
+
+  // 自动更新检查（生产环境生效，开发环境跳过）
+  if (!is.dev) {
+    autoUpdater.checkForUpdatesAndNotify()
+  }
 
   app.on('activate', function () {
     // macOS 下关闭所有窗口后点击 Dock 图标时，重新创建窗口
