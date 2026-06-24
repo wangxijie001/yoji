@@ -1,0 +1,76 @@
+.wapper {
+    display: flow-root;
+    height: 100%;
+    overflow: auto;
+    padding: 20px;
+     
+
+    .modalWapper {
+        float: left;
+        margin-right: 20px;
+        margin-bottom: 20px;
+        height: 180px;
+        width: 400px;
+        background-color: #fff;
+        border-radius: 10px;
+        padding: 20px;
+        cursor: pointer;
+
+        >div:first-child {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+
+            img {
+                width: 30px;
+                height: 30px;
+            }
+
+            i {
+                &:hover {
+                    color: #1677ff;
+                }
+            }
+
+            span {
+                font-size: 16px;
+                font-weight: 700;
+                flex: 1;
+                padding-left: 20px;
+            }
+
+        }
+
+        .listItem {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            >span{
+                &:first-child{
+                    display: inline-block;
+                    font-size: 14px;
+                    font-weight: 700;
+                    width: 80px;
+                }
+                &:last-child{
+                    flex: 1;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+            }
+
+        }
+
+        &:hover {
+            background-color: var(--default-hover-bg);
+        }
+
+        &.active {
+            background: var(--default-active-bg);
+            color: #fff;
+        }
+    }
+}

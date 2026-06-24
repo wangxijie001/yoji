@@ -1,0 +1,110 @@
+.wapper {
+    width: 100%;
+    height: 100%;
+    padding: 0 16px 16px;
+    overflow-y: auto;
+    overflow-y: auto;
+    scrollbar-width: none;
+    hr {
+        margin: 20px 0;
+    }
+
+    .chartWapper {
+        height: 400px;
+    }
+
+    .emotionWapper {
+        width: 100%;
+        font-size: 14px !important;
+        position: relative;
+
+        >button {
+            position: absolute;
+            top: 0px;
+            right: 16px;
+            font-size: 20px;
+            padding: 0px 8px;
+        }
+
+        >h3 {
+            padding-left: 0px;
+            margin-bottom: 12px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        ul {
+            list-style-type: disc;
+        }
+    }
+
+}
+
+.emotionLog {
+    position: relative;
+    height: 100%;
+
+    >div {
+        height: 30px;
+        line-height: 30px;
+
+        >i {
+            color: #979696;
+            right: 16px;
+            font-size: 20px;
+            cursor: pointer;
+            -webkit-app-region: no-drag;  
+
+            &:hover {
+                color: #333;
+            }
+        }
+    }
+
+    >ul {
+        box-sizing: border-box;
+        padding: 0 16px 16px;
+        height: calc(100% - 30px);
+        overflow-y: auto;
+        scrollbar-width: none;
+        /* Firefox */
+
+        &::-webkit-scrollbar {
+            display: none;
+        }
+
+        >li {
+            padding: 12px;
+            color: #666;
+            font-size: 12px;
+            margin: 16px 0;
+            border-radius: 8px;
+            box-shadow: 0 0px 6px rgba(0, 0, 0, 0.1);
+            background: var(--default-content-bg);
+            white-space: pre-wrap;
+
+            strong {
+                color: #333;
+            }
+
+            >div {
+                &:first-child {
+                    padding-bottom: 6px;
+                }
+            }
+
+            .hormoneLevel {
+                padding-top: 6px;
+
+                >span {
+                    margin-right: 12px;
+                }
+            }
+        }
+    }
+
+}
+
+.wapper :global(.ant-drawer-content-wrapper) {
+  box-shadow: none !important;
+}

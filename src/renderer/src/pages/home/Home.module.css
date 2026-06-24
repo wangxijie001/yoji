@@ -1,0 +1,85 @@
+.wapper {
+  box-sizing: border-box;
+  height: 100%;
+  position: relative;
+
+  .content {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    z-index: 100;
+    position: absolute;
+
+    >div {
+      height: 100%;
+    }
+  }
+  .description{
+    position: absolute;
+    bottom:6px;
+    left: 10px;
+    cursor: pointer;
+    z-index: 100;
+
+  }
+
+  .background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  background: linear-gradient(
+    to bottom,
+    var(--c1) 0%,
+    var(--c1) 66%,
+    var(--c2) 100%
+  );
+  transition: --c1 5s ease, --c2 5s ease;
+  }
+
+
+  .left {
+    width: 200px;
+    position: relative;
+
+    >i {
+      position: absolute;
+      top: 6px;
+      color: #979696;
+      right: 16px;
+      font-size: 20px;
+      cursor: pointer;
+
+      &:hover {
+        color: #333;
+      }
+    }
+  }
+
+  .right {
+    flex: 1;
+    max-width: calc(100% - 200px);
+    position: relative;
+     
+     .dragArea {
+       -webkit-app-region: drag;
+       background: transparent;
+       height: 20px;
+     }
+     >div {
+      height: calc(100% - 20px);
+     }
+  }
+}
+
+@property --c1 {
+  syntax: '<color>';
+  inherits: false;
+  initial-value: transparent;
+}
+@property --c2 {
+  syntax: '<color>';
+  inherits: false;
+  initial-value: transparent;
+}

@@ -1,0 +1,58 @@
+.wapper {
+  position: fixed;
+  z-index: 500;
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+  transition: box-shadow 0.2s;
+  position: absolute;
+  >i{
+    color: #fff;
+    font-size: 20px;
+    cursor: pointer;
+    position: absolute;
+    top: -2px;
+    right: 3px;
+    &:hover{
+      color: #d2d2d2;
+    }
+  }
+
+  &:active {
+    cursor: grabbing;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  }
+
+  .video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+  }
+
+  .resizeHandle {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    padding: 4px;
+    cursor: nwse-resize;
+  }
+}
+
+.imageMark{
+    position: absolute;
+    top: 6px;
+    left: 206px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    z-index: 100;
+    cursor: pointer;
+}

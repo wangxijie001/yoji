@@ -1,0 +1,27 @@
+.wapper {
+    height: 100%;
+    padding: 36px 10px 10px 20px;
+    background-color: rgba(201, 205, 209, 0.1);
+
+    .menulist {
+        >div {
+            display: flex;
+            align-items: center;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-weight: 700;
+            cursor: pointer;
+            &:hover{
+                background-color: var(--default-hover-bg);
+            }
+            &.active{
+                background: var(--default-active-bg);
+                color: #fff;
+            }
+
+            >span {
+                margin-right: 10px;
+            }
+        }
+    }
+}
