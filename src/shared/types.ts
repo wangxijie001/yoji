@@ -14,8 +14,10 @@ export type ModelConfig = { apiKey: string; model: string ; baseURL: string }
 
 // 聊天消息
 export type ChatMessage = {
-  role: 'user' | 'assistant' | 'system' 
+  role: 'user' | 'assistant' | 'system'
   content: string
+  /** 中断审批决策，仅 role='user' 且有未处理中断时传 */
+  interruptDecision?: 'approve' | 'edit' | 'reject'
 }
 
 // 聊天历史消息记录
@@ -63,4 +65,16 @@ export type EmotionState = {
   description: string
   display?: string  // JSON: { primary, secondary, ratio }，UI 背景渐变用
   created_at: number
+}
+
+// companion 目录下的文件条目
+export interface FileEntry {
+  name: string           // 文件名
+  relativePath: string   // 相对 companion 目录的路径
+  isDirectory: boolean
+  size: number           // 字节数，目录为 0
+  createdAt: number      // 创建时间，毫秒时间戳
+  modifiedAt: number     // 修改时间，毫秒时间戳
+  fullPath: string       // 完整绝对路径
+  mimeType?: string      // MIME 类型（仅文件有值）
 }

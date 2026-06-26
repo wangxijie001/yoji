@@ -3,6 +3,7 @@ import dayjs from 'dayjs'
 import { z } from "zod";
 import { searchMemories, fetchRawMessages, queryMessageDatabase } from './search-memories'
 import { searchEmotionLog } from './search-emotion-log'
+import { internetSearch } from './internet-search'
 
 export const queryCurrentTime = tool(
     async ({}:{}) => {
@@ -21,4 +22,4 @@ export const queryCurrentTime = tool(
 );
 
 
-export const toolList = [ queryCurrentTime, searchMemories, fetchRawMessages, queryMessageDatabase, searchEmotionLog ];
+export const toolList = [ queryCurrentTime, searchMemories, fetchRawMessages, queryMessageDatabase, searchEmotionLog, internetSearch ];

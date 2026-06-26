@@ -20,7 +20,7 @@
   --default-link-text-color: #13c2c2;
   --default-wapper-bg: linear-gradient(to bottom, #f3fefe, #ffffff);
   --default-content-bg: linear-gradient(90deg, #f5f5f5 0%, #e6f4ff 100%);
-  --default-drawer-bg: linear-gradient(to bottom, #f3fefe, #ffffff);
+  --default-drawer-bg: linear-gradient(to bottom, #e7f9f9, #ffffff);
 
 
   --ev-c-text-1: rgba(40, 40, 40, 0.86);
@@ -94,6 +94,26 @@ body {
   box-sizing: border-box;
   position: relative;
   color: #333
+}
+
+/* ---- 公共细滚动条样式 ---- */
+.thin-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
+}
+.thin-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.thin-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 2px;
+}
+.thin-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.30);
+}
+.thin-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 .custom-model-style {

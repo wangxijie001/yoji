@@ -48,6 +48,7 @@
             border-radius: 6px;
             padding: 6px 16px;
             margin-bottom: 16px;
+            overflow: auto;
         }
 
         .dotWapper {
@@ -126,6 +127,29 @@
             }
         }
 
+    }
+}
+
+.userApprovalModalContent {
+    pre {
+        background-color: #f2f2f2;
+        border-radius: 2px;
+        padding: 6px;
+    }
+    p {
+        margin: 10px 0 20px;
+    }
+    > textarea {
+        width: 100%;
+        &:focus-within,&:hover{
+            border-color: var(--default-link-text-color);
+        }
+    }
+    .buttonWapper {
+        > button {
+            width: 100%;
+            margin: 6px 0;
+        }
     }
 }
 

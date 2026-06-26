@@ -1,6 +1,7 @@
-import { createDeepAgent, FilesystemBackend, type DeepAgent } from 'deepagents'
+import { createDeepAgent, LocalShellBackend, type DeepAgent } from 'deepagents'
 import { HumanMessage, AIMessage, type BaseMessage, SystemMessage } from '@langchain/core/messages'
 import { SqliteSaver } from '@langchain/langgraph-checkpoint-sqlite'
+import { Command } from '@langchain/langgraph'
 import { app } from 'electron'
 import { join } from 'path'
 import { mkdirSync, writeFileSync, existsSync } from 'fs'
@@ -17,6 +18,9 @@ import { initEmotionTable } from './emotion/schema'
 import { toolList } from './tools'
 import { changeEmotion, getCurrentEmotionInfo } from './emotion'
 import { initSkills } from './skills'
+import { tts } from './utils/tts'
+import { z } from 'zod/v4'
+import { dynamicContext } from './middleware/dynamic-context'
 
 const COMPANION_DIR = join(app.getPath('userData'), 'companion')
 
@@ -30,6 +34,9 @@ const AGENTS_MD_TEMPLATE = `# 用户画像
 #关于你
  -你初次来到这个世界，对一切充满着好奇
  -但是你对这个世界了解不多，不知道自己是谁，对一切充满着陌生感
+
+# 文件记录
+- 尚未记录（Agent 创建或修改文件后会自动更新）
 `
 
 // 持久化 checkpointer，存在 userData/companion/ 目录
@@ -71,12 +78,23 @@ export function createAgent(config: ModelConfig): DeepAgent {
     model,
     systemPrompt,
     tools: toolList,
-    // FilesystemBackend: 将 companion 目录映射为虚拟文件系统
-    // virtualMode 下，Agent 只能操作该目录内的文件，无法越界
-    backend: new FilesystemBackend({ rootDir: COMPANION_DIR, virtualMode: true }),
-    memory: [AGENTS_MD_PATH],
+    // LocalShellBackend: 文件操作锁在 companion 目录内 + execute 执行系统命令
+    backend: new LocalShellBackend({
+      rootDir: COMPANION_DIR,
+      virtualMode: true,
+      inheritEnv: true,
+      timeout: 30
+    }),
+    memory: ['/AGENTS.md'],
     skills: ['/skills/builtin/', '/skills/user/'],
-    checkpointer: getCheckpointer()
+    middleware: [dynamicContext],
+    checkpointer: getCheckpointer(),
+    interruptOn: {
+      execute: { allowedDecisions: ['approve', 'reject'] }
+    },
+    contextSchema: z.object({
+      emotion: z.string().optional()
+    })
   }) as unknown as DeepAgent
   return _agent
 }
@@ -107,8 +125,10 @@ export async function chatStream(
 ): Promise<void> {
   const agent = createAgent(config)
   let userMessage = ''
+  /** 中断审批决策，仅 role='user' 且有未处理中断时传 */
+  let interruptDecision: ChatMessage['interruptDecision'] | undefined = undefined
   const langchainMessages: BaseMessage[] = messages.map((m) => {
-    let _message: SystemMessage | AIMessage | HumanMessage 
+    let _message: SystemMessage | AIMessage | HumanMessage
     switch (m.role) {
       case 'system':
         _message = new SystemMessage({ content: m.content })
@@ -119,13 +139,38 @@ export async function chatStream(
       default:
         _message = new HumanMessage({ content: m.content })
         userMessage += m.content
+        interruptDecision = m.interruptDecision
         break
     }
     return _message
   })
-  const currentEmotionInfo = getCurrentEmotionInfo()
-  if (currentEmotionInfo) {
-    langchainMessages.push(new SystemMessage({ content: `你当前情绪：${currentEmotionInfo}` }))
+
+  let interruptCommand: Command | null = null
+
+  if (interruptDecision) {
+    // 用户明确处理中断：构建 Command，继续向下执行
+    const decisions = [{ type: interruptDecision, message: userMessage }]
+    interruptCommand = new Command({ resume: { decisions } })
+  } else {
+    // 非中断消息：检查是否有未处理的中断，有则自动拒绝
+    const lastState = await (agent as any).getState(threadConfig)
+    const pendingInterrupts = lastState?.tasks?.flatMap((t: any) => t.interrupts || []) || []
+    if (pendingInterrupts.length > 0) {
+      const decisions = [
+        {
+          type: 'reject' as const,
+          message: 'User rejected this action. Do not retry this tool call.'
+        }
+      ]
+      // stream 方式 resume，invoke 有兼容问题
+      const rejectStream = await (agent as any).stream(new Command({ resume: { decisions } }), {
+        ...threadConfig,
+        streamMode: 'updates'
+      })
+      for await (const _ of rejectStream) {
+        /* 消费完毕 */
+      }
+    }
   }
 
   try {
@@ -133,20 +178,32 @@ export async function chatStream(
     insertMessageHistory({
       session_id: 'main',
       role: 'user',
-      content: userMessage || messages.filter(m => m.role === 'user').map(m => m.content).join('')
-    })
+      content: userMessage })
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const stream = await agent.stream({ messages: langchainMessages } as any, {
+    const streamInput: any = interruptCommand || { messages: langchainMessages }
+    // 动态上下文（不入 history）：情绪通过 contextSchema + middleware 注入
+    const streamConfig: any = {
       ...threadConfig,
       streamMode: ['messages', 'updates'],
       subgraphs: true
-    })
+    }
+    
+    const emotion = getCurrentEmotionInfo()
+    if (emotion) streamConfig.context = { emotion }
+    let i = 0
+    const stream: any = await agent.stream(streamInput, streamConfig)
     let totalMessages = ''
     for await (const [namespace, mode, data] of stream) {
+
+
       // 1. 处理流式输出：思考过程与最终答案
       if (mode === 'messages') {
         const msg = Array.isArray(data) ? data[0] : data
+
+                    i++
+              if(i < 3) {
+              console.log(JSON.stringify(msg))
+              }
         // 实时打印思考过程 (增量流)
         if (msg.additional_kwargs?.reasoning_content) {
           const data = { content: msg.additional_kwargs.reasoning_content, type: 'think' }
@@ -162,6 +219,8 @@ export async function chatStream(
           } else {
             const data = { content: msg.content, type: 'result' }
             totalMessages += msg.content
+            //语音播报
+            // tts.feed(msg.content as string)
             callbacks.onChunk(data)
           }
         }
@@ -231,11 +290,17 @@ export async function chatStream(
               operate: reviewConfig.allowedDecisions
             }
             callbacks.onChunk(data)
+            totalMessages += '等待确认。'
+            //语音播报
+            tts.feed('等待确认。')
+            callbacks.onChunk({ content: '等待确认。', type: 'result' })
           }
         }
       }
     }
     callbacks.onDone()
+    //播放剩余半句
+    tts.flush()
     //清理checkpoint快照
     cleanupCheckpoints(1)
     //记录聊天记录
@@ -246,11 +311,12 @@ export async function chatStream(
     })
     //生成聊天记录摘要
     generateAndStoreSnapshot(config)
-    //分析情绪
-    changeEmotion([
-      { role: 'user', content: userMessage },
-      { role: 'assistant', content: totalMessages }
-    ])
+    //分析情绪, 中断意见不涉及情绪分析
+    !interruptDecision &&
+      changeEmotion([
+        { role: 'user', content: userMessage },
+        { role: 'assistant', content: totalMessages }
+      ])
   } catch (err) {
     callbacks.onError(err instanceof Error ? err.message : '流式调用失败')
   }

@@ -1,10 +1,10 @@
 import styles from "./AIChat.module.css";
-import { Button } from "antd";
+import { Button, Modal } from "antd";
 import { useEffect, useRef, useState } from "react";
 import FormatChat from "../../components/format-chat/index";
 import TextArea from "antd/es/input/TextArea";
 import agentApi from "../../api/agent";
-import { MessageHistoryQuery } from "@shared/types";
+import { ChatMessage, MessageHistoryQuery } from "@shared/types";
 import InfiniteScroll from 'react-infinite-scroller'
 import dayjs from 'dayjs'
 
@@ -19,6 +19,7 @@ type MessageItem = {
     created_at?: number
 
 };
+type SendMessageEvent =  {event?: React.KeyboardEvent<HTMLTextAreaElement>; interruptType?: ChatMessage['interruptDecision']; interruptMessage?: string }
 const AiChat = () => {
     const [inputMessage, setInputMessage] = useState("");
     const [messageList, setMessageList] = useState<MessageItem[]>([]);
@@ -27,6 +28,8 @@ const AiChat = () => {
     const timerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
     const currentAiIdRef = useRef<string>(''); // 当前正在流式输出的 AI 消息 ID
     const [hasMore, setHasMore] = useState(true)
+    const [interruptInfo, setInterruptInfo] = useState<{ open: boolean, info?: string; message?: string }>({ open: false })
+
 
 
     useEffect(() => {
@@ -71,22 +74,9 @@ const AiChat = () => {
         })
     }
 
-    // const setAiMessageInfo = (message: string) => {
-    //     const aiMessage: MessageItem = {
-    //         id: Date.now() + "ai",
-    //         content: message,
-    //         role: "ai",
-    //         loading: false,
-    //     };
-    //     const timer = setTimeout(() => {
-    //         setMessageList((prev) => [...prev, aiMessage]);
-    //         clearTimeout(timer);
-    //     }, 500);
 
-    // };
-
-    const sendMessage = async (event?: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        const userMsg = inputMessage;
+    const sendMessage = async ({event, interruptType, interruptMessage}: SendMessageEvent) => {
+        const userMsg = inputMessage || interruptMessage;
         if (event?.shiftKey || !userMsg) return;
         setInputMessage("");
 
@@ -133,13 +123,14 @@ const AiChat = () => {
         // setMessageList((prev) => [...prev, aiMessage]);
         // 流式请求：只负责往 streamRef 喂数据
         agentApi.chatStream(
-            [{ role: "user", content: userMsg }],
-            // [{ role: "system", content: userMsg }],
+            [{ role: "user", interruptDecision:interruptType, content: userMsg }],
             {
                 onChunk: (_content) => {
                     const { type, content } = _content;
                     if (type === 'result') {
                         streamRef.current.message += content;
+                    } else if (type === 'requires_approval') {
+                        setInterruptInfo({ open: true, info: content, message: '' })
                     }
                 },
                 onDone: () => {
@@ -150,6 +141,7 @@ const AiChat = () => {
                 },
             },
         );
+
     };
 
     const onMessageInput = (str: string) => {
@@ -157,18 +149,29 @@ const AiChat = () => {
         setInputMessage(str);
     };
 
+    const onUserApproval = (type: ChatMessage['interruptDecision']) => {
+        if (!type) return
+        const _messageStart = {
+            approve: '同意',
+            reject: '拒绝',
+            edit: ''
+        }
+        setInterruptInfo({ open: false, info: '', message: '' })
+        sendMessage({ interruptType: type, interruptMessage: `【${_messageStart[type]}】${interruptInfo.message}` })
+    }
+
     // 判断是否展示时间分隔。最新消息与当前时间比较，其余消息与下一条比较，间隔 >10 分钟才展示
     const showTime = (createdAt?: number, PrevCreatedAt?: number): string | null => {
         if (!createdAt) return null
         const gap = PrevCreatedAt !== undefined
-            ?  createdAt - PrevCreatedAt       // 非最新消息：与下一条的间隔
+            ? createdAt - PrevCreatedAt       // 非最新消息：与下一条的间隔
             : Date.now() - createdAt            // 最新消息：与当前时间的间隔
         if (gap <= 10 * 60 * 1000) return null
         const d = dayjs(createdAt)
         const now = dayjs()
 
         if (d.isSame(now, 'day')) return d.format('HH:mm')
-        if (d.isSame(now.subtract(1, 'day'), 'day')) return '昨天 ' + d.format('HH:mm') 
+        if (d.isSame(now.subtract(1, 'day'), 'day')) return '昨天 ' + d.format('HH:mm')
         if (d.isSame(now, 'year')) return d.format('MM月DD日 HH:mm')
         return d.format('YYYY年MM月DD日 HH:mm')
     }
@@ -218,7 +221,7 @@ const AiChat = () => {
                         onChange={(e: any) => onMessageInput(e.target.value)}
                         placeholder="发消息..."
                         autoSize
-                        onPressEnter={sendMessage}
+                        onPressEnter={(e) => sendMessage({ event: e })}
                     />
                 </div>
                 <div className={styles.operate}>
@@ -227,12 +230,32 @@ const AiChat = () => {
                     {inputMessage && (
                         <Button
                             type="primary"
-                            onClick={() => sendMessage()}
+                            onClick={() => sendMessage({})}
                             icon={<i className="iconfont icon-cocos-arrowTop-fill" style={{ fontSize: 20 }} />}
                         />
                     )}
                 </div>
             </div>
+            <Modal
+                open={interruptInfo.open}
+                width={360}
+                footer={null}
+                closable={false}
+            >
+                <div className={styles.userApprovalModalContent}>
+                    <pre style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word', fontSize: 12 }}>{interruptInfo.info}</pre>
+                    <p>请确认是否执行此操作</p>
+                    <TextArea
+                        value={interruptInfo.message}
+                        onChange={(e: any) => setInterruptInfo({ ...interruptInfo, message: e.target.value })}
+                        placeholder="执行建议"
+                    />
+                    <div className={styles.buttonWapper}>
+                        <Button color="primary"  onClick={() => onUserApproval('approve')}>同意</Button>
+                        <Button onClick={() => onUserApproval('reject')}>拒绝</Button>
+                    </div>
+                </div>
+            </Modal>
         </main>
     );
 };

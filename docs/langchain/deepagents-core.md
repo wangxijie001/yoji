@@ -44,6 +44,15 @@ const agent = createDeepAgent({
   subagents: [],
   middleware: [],
   backend: /* 文件系统后端 */,
+  memory: ['AGENTS.md'],          // 记忆文件路径
+  skills: ['/skills/builtin/'],   // Skill 目录
+  checkpointer: new SqliteSaver(/* ... */),
+  interruptOn: {                  // Human-in-the-loop 审批
+    execute: true,
+  },
+  permissions: [                  // 文件权限规则
+    { operations: ['read', 'write'], paths: ['/**'], mode: 'allow' },
+  ],
 })
 ```
 
@@ -55,10 +64,26 @@ const result = await agent.invoke({
 })
 ```
 
+## 关键参数说明
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `model` | `BaseLanguageModel` | 语言模型 |
+| `systemPrompt` | `string` | 系统提示词 |
+| `tools` | `StructuredTool[]` | 自定义工具列表 |
+| `backend` | `FilesystemBackend` / `LocalShellBackend` | 文件系统后端，详见 [filesystem 文档](deepagents-filesystem.md) |
+| `memory` | `string[]` | 记忆文件路径（如 `['AGENTS.md']`） |
+| `skills` | `string[]` | Skill 目录路径 |
+| `checkpointer` | `BaseCheckpointSaver` | 持久化检查点（HITL 必需） |
+| `interruptOn` | `Record<string, boolean \| InterruptOnConfig>` | 工具审批配置，详见 [middleware 文档](deepagents-middleware.md) |
+| `permissions` | `FilesystemPermission[]` | 文件权限规则，详见 [middleware 文档](deepagents-middleware.md) |
+| `subagents` | `SubAgent[]` | 子代理定义 |
+| `middleware` | `AgentMiddleware[]` | 自定义中间件 |
+
 ## 版本
 
 | 版本 | 时间 | 关键变化 |
-|---|---|---|
-| v0.4 | 2026.02 | 可插拔沙箱、自动摘要 |
-| v0.5 | 2026.04 | 异步子代理、多模态 |
-| v0.6 | 2026.05 | Code Interpreter、Streaming v3 |
+|------|------|------|
+| v1.10.5 | 2026.06 | `interruptOn`、`FilesystemPermission`、`LocalShellBackend` |
+| v1.9+ | 2026.05 | 异步子代理、Streaming v3 |
+| v1.7+ | 2026.04 | 可插拔沙箱、自动摘要 |

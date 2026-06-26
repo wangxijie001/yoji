@@ -1,7 +1,8 @@
-import { ipcMain, app, dialog, BrowserWindow } from 'electron'
+import { ipcMain, app, dialog, BrowserWindow, shell } from 'electron'
 import { readFileSync, writeFileSync, copyFileSync, existsSync, readdirSync, statSync, rmSync, mkdirSync } from 'fs'
 import { join, relative } from 'path'
 import { gzipSync, gunzipSync } from 'zlib'
+import mime from 'mime'
 
 const COMPANION_DIR = join(app.getPath('userData'), 'companion')
 const PWD_TOKEN = 'agent_love_001'
@@ -40,6 +41,59 @@ function clearCompanionDir(): void {
 }
 
 export function register(): void {
+  // ---- 列出 companion 目录下的文件（只返回当前目录的直接子级） ----
+  ipcMain.handle('file:listDir', async (_event, dirPath?: string) => {
+    try {
+      const targetDir = dirPath ? join(COMPANION_DIR, dirPath) : COMPANION_DIR
+      // 安全检查：防止路径穿越越界
+      if (!targetDir.startsWith(COMPANION_DIR)) {
+        return { ok: false, error: '不允许访问 companion 目录外的路径' }
+      }
+      const entries: { name: string; relativePath: string; isDirectory: boolean; size: number; createdAt: number; modifiedAt: number; fullPath: string; mimeType?: string }[] = []
+      for (const name of readdirSync(targetDir)) {
+        if (name.startsWith('.') || name.endsWith('-wal') || name.endsWith('-shm')) continue
+        const full = join(targetDir, name)
+        const stat = statSync(full)
+        const isDir = stat.isDirectory()
+        entries.push({
+          name,
+          relativePath: relative(COMPANION_DIR, full),
+          isDirectory: isDir,
+          size: isDir ? 0 : stat.size,
+          createdAt: stat.birthtimeMs,
+          modifiedAt: stat.mtimeMs,
+          fullPath: full,
+          mimeType: isDir ? undefined : (mime.getType(full) || 'application/octet-stream'),
+        })
+      }
+
+      return { ok: true, data: entries }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '列出目录失败'
+      return { ok: false, error: message }
+    }
+  })
+
+  // ---- 读取文件内容（传入 FileEntry.fullPath） ----
+  ipcMain.handle('file:readFile', async (_event, fullPath: string) => {
+    try {
+      if (!fullPath.startsWith(COMPANION_DIR)) {
+        return { ok: false, error: '不允许访问 companion 目录外的路径' }
+      }
+      const buf = readFileSync(fullPath)
+      const fileName = fullPath.split('/').pop() || fullPath
+      // Buffer.buffer 可能是共享池，用 slice 拷贝出独立 ArrayBuffer
+      const content = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength)
+      return {
+        ok: true,
+        data: { content, fileName, mimeType: mime.getType(fullPath) || 'application/octet-stream' },
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '读取文件失败'
+      return { ok: false, error: message }
+    }
+  })
+
   ipcMain.handle('file:readAgentsMd', async () => {
     try {
       const path = join(COMPANION_DIR, 'AGENTS.md')
@@ -179,6 +233,17 @@ export function register(): void {
       return { ok: true, data: `${target.defaultName} 已覆盖` }
     } catch (err) {
       const message = err instanceof Error ? err.message : '导入失败'
+      return { ok: false, error: message }
+    }
+  })
+
+  // ---- 在系统文件管理器中显示文件（macOS Finder / Windows Explorer） ----
+  ipcMain.handle('file:showFileInFolder', async (_event, fullPath: string) => {
+    try {
+      shell.showItemInFolder(fullPath)
+      return { ok: true }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '打开失败'
       return { ok: false, error: message }
     }
   })

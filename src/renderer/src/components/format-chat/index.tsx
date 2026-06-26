@@ -36,7 +36,7 @@ const FormatChat = (props: ChatMsg) => {
                     <ReactMarkdown
                         components={{
                             p: ({ children }) => <div style={{ margin: "6px 0", fontSize: "12px", lineHeight: "20px"}}>{children}</div>,
-                            img: ({ src }) => <Image width={160} style={{ borderRadius: 6 }} alt="basic" src={src} />,
+                            img: ({ src }) => <Image width={160} style={{ borderRadius: 6 }} alt="basic" src={src} referrerPolicy="no-referrer" />,
                             ul: ({ children }) => <ul style={{ margin: "6px 16px" }}>{children}</ul>,
                             li: ({ children }) => <li style={{ margin: "6px 0", fontSize: "12px", lineHeight: "20px" }}>{children}</li>,
                             ol: ({ children }) => <ol style={{ margin: "6px 16px", fontSize: "12px" }}>{children}</ol>,
@@ -54,8 +54,8 @@ const FormatChat = (props: ChatMsg) => {
 
             <ReactMarkdown
                 components={{
-                    p: ({ children }) => <p style={{ margin: "6px 0", fontSize: "15px", lineHeight: "26px" }}>{children}</p>,
-                    img: ({ src }) => <div><Image width={160} style={{ borderRadius: 6 }} alt="basic" src={src} /></div>,
+                    p: ({ children }) => <div style={{ margin: "6px 0", fontSize: "15px", lineHeight: "26px" }}>{children}</div>,
+                    img: ({ src }) => <Image width={160} style={{ borderRadius: 6, display: 'block' }} alt="basic" src={src} referrerPolicy="no-referrer" />,
                     ul: ({ children }) => <ul style={{ margin: "6px 18px" }}>{children}</ul>,
                     li: ({ children }) => <li style={{ margin: "6px 0", fontSize: "15px", lineHeight: "26px" }}>{children}</li>,
                     ol: ({ children }) => <ol style={{ margin: "6px 18px", fontSize: "15px" }}>{children}</ol>,

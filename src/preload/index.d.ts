@@ -1,5 +1,5 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
-import type { ChatMessage, MessageHistoryQuery, MessageRecord, StreamCallbacks, EmotionState } from '../../shared/types'
+import type { ChatMessage, MessageHistoryQuery, MessageRecord, StreamCallbacks, EmotionState, FileEntry } from '../../shared/types'
 
 interface ApiResponse<T = unknown> {
   ok: boolean
@@ -32,8 +32,11 @@ interface Api {
   }
   file: {
     readAgentsMd: () => Promise<ApiResponse<string>>
+    listDir: (dirPath?: string) => Promise<ApiResponse<FileEntry[]>>
+    readFile: (fullPath: string) => Promise<ApiResponse<{ content: ArrayBuffer; fileName: string; mimeType: string }>>
     exportFile: (type: 'db' | 'md' | 'all') => Promise<ApiResponse<string>>
     importFile: (type: 'db' | 'md' | 'all') => Promise<ApiResponse<string>>
+    showFileInFolder: (fullPath: string) => Promise<ApiResponse<void>>
   }
 }
 

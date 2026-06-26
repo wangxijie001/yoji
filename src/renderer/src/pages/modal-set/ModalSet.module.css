@@ -9,7 +9,7 @@
         float: left;
         margin-right: 20px;
         margin-bottom: 20px;
-        height: 180px;
+        height: 210px;
         width: 400px;
         background-color: #fff;
         border-radius: 10px;
@@ -71,6 +71,23 @@
         &.active {
             background: var(--default-active-bg);
             color: #fff;
+        }
+    }
+    .paramsDsc {
+        font-size: 12px;
+        ul {
+            padding-left: 0;
+            list-style: none;
+            li {
+                margin-bottom: 12px;
+                p {
+                    margin: 4px 0;
+                }
+                strong {
+                    font-size: 14px;
+                    font-weight: 700;
+                }
+            }
         }
     }
 }

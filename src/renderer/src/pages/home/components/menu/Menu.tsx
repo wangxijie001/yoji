@@ -11,9 +11,9 @@ type MenuItem = {
 
 const menuList: MenuItem[] = [
   { key: 'home', label: '首页', icon: 'icon-cocos-shouye', path: '/' },
-  { key: 'model-set', label: '模型', icon: 'icon-cocos-lujing-8', path: '/model-set' },
   { key: 'param-show', label: '情绪', icon: 'icon-cocos-canshu', path: '/param-show' },
   { key: 'diary', label: '笔记', icon: 'icon-cocos-version-list', path: '/diary' },
+  { key: 'model-set', label: '模型', icon: 'icon-cocos-lujing-8', path: '/model-set' },
   { key: 'file-manage', label: '文件', icon: 'icon-cocos-resource-list', path: '/file-manage' },
 ]
 
