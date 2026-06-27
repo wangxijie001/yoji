@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  '@langchain/langgraph-sdk':
+    hash: 9d5275d03d869e03daa898f117d6cbfddf8d488ab24ce4b4753097bbb0c36ad5
+    path: patches/@langchain__langgraph-sdk.patch
+
 importers:
 
   .:
@@ -59,6 +64,12 @@ importers:
       electron-updater:
         specifier: ^6.3.9
         version: 6.8.9
+      p-queue:
+        specifier: ^9.1.0
+        version: 9.1.0
+      p-retry:
+        specifier: ^7.1.1
+        version: 7.1.1
       prism-themes:
         specifier: ^1.9.0
         version: 1.9.0
@@ -3311,6 +3322,10 @@ packages:
     resolution: {integrity: sha512-RwFpb72c/BhQLEXIZ5K2e+AhgNVmIejGlTgiB9MzZ0e93GRvqZ7uSi0dvRF7/XIXDeNkra2fNHBxTyPDGySpjQ==}
     engines: {node: '>=8'}
 
+  p-queue@9.1.0:
+    resolution: {integrity: sha512-O/ZPaXuQV29uSLbxWBGGZO1mCQXV2BLIwUr59JUU9SoH76mnYvtms7aafH/isNSNGwuEfP6W/4xD0/TJXxrizw==}
+    engines: {node: '>=20'}
+
   p-queue@9.3.0:
     resolution: {integrity: sha512-7NED7xhQ74Ngp4JP/2e0VZHp7vSWfJfqeiR92jPgxsz6m0Se4P03YoTKa9dDXyZ3r6P616gUXttrB6nnHYKang==}
     engines: {node: '>=20'}
@@ -4831,7 +4846,7 @@ snapshots:
     dependencies:
       '@langchain/core': 1.2.1(openai@6.42.0(zod@4.4.3))
 
-  '@langchain/langgraph-sdk@1.9.25(@langchain/core@1.2.1(openai@6.42.0(zod@4.4.3)))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+  '@langchain/langgraph-sdk@1.9.25(patch_hash=9d5275d03d869e03daa898f117d6cbfddf8d488ab24ce4b4753097bbb0c36ad5)(@langchain/core@1.2.1(openai@6.42.0(zod@4.4.3)))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       '@langchain/core': 1.2.1(openai@6.42.0(zod@4.4.3))
       '@langchain/protocol': 0.0.18
@@ -4846,7 +4861,7 @@ snapshots:
     dependencies:
       '@langchain/core': 1.2.1(openai@6.42.0(zod@4.4.3))
       '@langchain/langgraph-checkpoint': 1.1.3(@langchain/core@1.2.1(openai@6.42.0(zod@4.4.3)))
-      '@langchain/langgraph-sdk': 1.9.25(@langchain/core@1.2.1(openai@6.42.0(zod@4.4.3)))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@langchain/langgraph-sdk': 1.9.25(patch_hash=9d5275d03d869e03daa898f117d6cbfddf8d488ab24ce4b4753097bbb0c36ad5)(@langchain/core@1.2.1(openai@6.42.0(zod@4.4.3)))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@langchain/protocol': 0.0.18
       '@standard-schema/spec': 1.1.0
       zod: 4.4.3
@@ -6179,7 +6194,7 @@ snapshots:
     dependencies:
       '@langchain/core': 1.2.1(openai@6.42.0(zod@4.4.3))
       '@langchain/langgraph': 1.4.6(@langchain/core@1.2.1(openai@6.42.0(zod@4.4.3)))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(zod-to-json-schema@3.25.2(zod@4.4.3))(zod@4.4.3)
-      '@langchain/langgraph-sdk': 1.9.25(@langchain/core@1.2.1(openai@6.42.0(zod@4.4.3)))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@langchain/langgraph-sdk': 1.9.25(patch_hash=9d5275d03d869e03daa898f117d6cbfddf8d488ab24ce4b4753097bbb0c36ad5)(@langchain/core@1.2.1(openai@6.42.0(zod@4.4.3)))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       fast-glob: 3.3.3
       langchain: 1.5.2(@langchain/core@1.2.1(openai@6.42.0(zod@4.4.3)))(openai@6.42.0(zod@4.4.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(zod-to-json-schema@3.25.2(zod@4.4.3))
       langsmith: 0.7.12(openai@6.42.0(zod@4.4.3))
@@ -7997,6 +8012,11 @@ snapshots:
     dependencies:
       eventemitter3: 4.0.7
       p-timeout: 3.2.0
+
+  p-queue@9.1.0:
+    dependencies:
+      eventemitter3: 5.0.4
+      p-timeout: 7.0.1
 
   p-queue@9.3.0:
     dependencies:

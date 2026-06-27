@@ -1,0 +1,12 @@
+diff --git a/dist/utils/async_caller.cjs b/dist/utils/async_caller.cjs
+index 72e4ca8043176286de50e5597de648c0d2f22101..380158f025bbab825c15e62d25367af28753216a 100644
+--- a/dist/utils/async_caller.cjs
++++ b/dist/utils/async_caller.cjs
+@@ -1,5 +1,5 @@
+-const require_index = require("../node_modules/.pnpm/p-retry@7.1.1/node_modules/p-retry/index.cjs");
+-const require_index$1 = require("../node_modules/.pnpm/p-queue@9.1.0/node_modules/p-queue/dist/index.cjs");
++const require_index = require("p-retry");
++const require_index$1 = require("p-queue");
+ const require_fetch = require("../singletons/fetch.cjs");
+ //#region src/utils/async_caller.ts
+ /**
