@@ -34,23 +34,29 @@ src/main/
 ├── ipc/                   # IPC 处理器
 │   ├── index.ts           # registerAll() 汇总注册
 │   ├── agent.ts           # agent:chat / agent:chat:stream（流式对话）
-│   ├── config.ts          # 配置 IPC
+│   ├── config.ts          # 配置 IPC（通用 config:getAll/set/delete）
 │   ├── emotion.ts         # emotion:log（情绪日志查询）
 │   ├── file.ts            # file:readAgentsMd / file:export / file:import
 │   ├── http.ts            # HTTP IPC
+│   ├── mcp.ts             # mcp:testConnection / mcp:updateMcpStoreVersion
+│   ├── tts.ts             # tts:getEnabled / tts:setEnabled / tts:toggle
 │   └── broadcast.ts       # 通用广播工具（主→渲染主动推送）
+├── mcp/                   # MCP 客户端管理（预留）
 └── agent/                 # AI Agent 核心
-    ├── index.ts           # Agent 初始化、checkpointer、companion 目录
+    ├── index.ts           # chat / chatStream（对话入口 + 流式处理）
+    ├── create-agent.ts    # Agent 工厂（createAgent / getCheckpointer / companion 初始化，MCP 子 Agent 注入）
     ├── model.ts           # 模型工厂（DeepSeek / Qwen）
     ├── system-prompt.ts   # System Prompt 构建
+    ├── children-agent/    # 子 Agent 定义
+    │   └── mcp-execute-agent.ts  # MCP 工具执行子 Agent（SubAgent 定义 + getTools）
     ├── emotion/           # 激素情绪系统
     │   ├── schema.ts      # emotion_log 表操作（CRUD）
     │   ├── index.ts       # changeEmotion() 情绪变化引擎
     │   └── emotion_model.ts # LLM 情绪分析
-    ├── tools/             # Agent 工具集
+    ├── tools/             # Agent 工具集（含 mcp-manage.ts MCP 管理工具）
     ├── skills/            # 内置 Skills
     ├── middleware/         # Agent 中间件
-    └── utils/             # checkpoint 清理、chat-history 等
+    └── utils/             # checkpoint 清理、chat-history、TTS 语音播报等
 ```
 
 ### 2. 预加载脚本 (`src/preload/`)
@@ -62,11 +68,13 @@ src/preload/
 ├── index.d.ts             # window.api 完整类型声明（所有 API 类型的真相源）
 └── api/
     ├── index.ts           # 汇总所有 API 到 window.api
-    ├── agent.ts           # chat / chatStream / historyQuery
-    ├── config.ts          # 配置读写
+    ├── agent.ts           # chat / chatStream / historyQuery / onRebuilding
+    ├── config.ts          # 配置读写（含 delete）
     ├── emotion.ts         # getLog / onUpdated
     ├── file.ts            # readAgentsMd / exportFile / importFile
     ├── http.ts            # HTTP 请求
+    ├── mcp.ts             # testConnection / updateMcpStoreVersion
+    ├── tts.ts             # getEnabled / setEnabled / toggle / onEnabledChanged
     └── listener.ts        # createListener<T>() 通用监听器工厂
 ```
 
@@ -86,13 +94,16 @@ src/renderer/
     │   ├── modal-set/       # 模型配置页（DeepSeek / Qwen 切换）
     │   ├── param-show/      # 参数展示页
     │   ├── diary/           # 日记页
-    │   └── file-manage/     # 文件管理页（导出/导入记忆体）
+    │   ├── file-manage/     # 文件管理页（导出/导入记忆体）
+    │   └── mcp-manage/      # MCP 服务器管理页（添加/测试/启用/卸载）
     ├── components/          # 通用组件（FormatChat、echarts 等）
     ├── api/                 # 渲染进程 API 封装层（处理 error toast）
     │   ├── agent.ts
     │   ├── config.ts
     │   ├── emotion.ts
     │   ├── file.ts
+    │   ├── mcp.ts
+    │   ├── tts.ts
     │   └── server.ts
     └── assets/              # CSS、SVG、iconfont 等静态资源
 ```
@@ -169,7 +180,7 @@ companion/
 
 ### 关键常量
 - `PWD_TOKEN`: `'agent_love_001'` — 导出文件鉴权识别码
-- `COMPANION_DIR`: `join(app.getPath('userData'), 'companion')`
+- `COMPANION_DIR`: `join(app.getPath('userData'), 'companion')`（定义在 `src/main/agent/create-agent.ts`）
 
 ## AI 伴侣系统
 
@@ -193,6 +204,18 @@ companion/
 - 表：`raw_messages`，链表结构（`prev_id` / `next_id`）
 - 查询：支持 `beforeId` + `limit` 分页
 - 渲染进程用 `react-infinite-scroller` 做向上滚动加载更多
+
+### MCP 外部工具系统
+文件：`src/main/agent/children-agent/mcp-execute-agent.ts`（子 Agent），`src/main/agent/tools/mcp-manage.ts`（工具）。
+
+**架构**：MCP 工具不直接注入主 Agent，而是通过子 Agent 隔离：
+1. UI 配置 → 保存到 `configs/mcp.json`（含 URL、transport、工具列表）
+2. 保存后调 `mcp:updateMcpStoreVersion` 更新版本号，触发 Agent 重建
+3. `createAgent()` 检测版本变化 → `createMcpExecuteAgent()` 异步连接 MCP server，获取工具
+4. 注入为 `subagents`（name: `mcp-executor`），主 Agent 通过 `task` 工具调用
+5. MCP 工具 schema 全在子 Agent 内部，不污染主 Agent 上下文
+
+**Agent 重建通知**：重建开始时主进程广播 `agent:rebuilding`（start/done），渲染进程显示"AI 核心重启中"提示。
 
 ## 窗口配置
 

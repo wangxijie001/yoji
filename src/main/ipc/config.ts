@@ -15,4 +15,8 @@ export function register(): void {
   ipcMain.handle('config:set', (_, configName: ConfigName, key: string, value: unknown) =>
     getConfig(configName).set(key, value),
   )
+
+  ipcMain.handle('config:delete', (_, configName: ConfigName, key: string) =>
+    getConfig(configName).delete(key),
+  )
 }

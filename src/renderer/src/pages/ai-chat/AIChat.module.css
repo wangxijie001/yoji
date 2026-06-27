@@ -14,10 +14,12 @@
         &::-webkit-scrollbar {
             width: 4px;
         }
+
         &::-webkit-scrollbar-thumb {
             background: rgba(0, 0, 0, 0.12);
             border-radius: 2px;
         }
+
         &::-webkit-scrollbar-thumb:hover {
             background: rgba(0, 0, 0, 0.30);
         }
@@ -136,17 +138,22 @@
         border-radius: 2px;
         padding: 6px;
     }
+
     p {
         margin: 10px 0 20px;
     }
-    > textarea {
+
+    >textarea {
         width: 100%;
-        &:focus-within,&:hover{
+
+        &:focus-within,
+        &:hover {
             border-color: var(--default-link-text-color);
         }
     }
+
     .buttonWapper {
-        > button {
+        >button {
             width: 100%;
             margin: 6px 0;
         }
@@ -166,4 +173,11 @@
         opacity: 1;
         transform: scale(1.2);
     }
+}
+
+.paramsDsc {
+    height: 100%;
+    overflow-y: auto;
+    padding-top: 20px;
+    font-size: 12px;
 }

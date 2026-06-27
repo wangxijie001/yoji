@@ -3,6 +3,8 @@ import { config } from './config'
 import { agent } from './agent'
 import { emotion } from './emotion'
 import { file } from './file'
+import { tts } from './tts'
+import { mcp } from './mcp'
 
 // 汇总所有暴露给渲染进程的 API
 export const api = {
@@ -10,5 +12,7 @@ export const api = {
   config,
   agent,
   emotion,
-  file
+  file,
+  tts,
+  mcp
 }

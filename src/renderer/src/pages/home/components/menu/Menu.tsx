@@ -15,6 +15,7 @@ const menuList: MenuItem[] = [
   { key: 'diary', label: '笔记', icon: 'icon-cocos-version-list', path: '/diary' },
   { key: 'model-set', label: '模型', icon: 'icon-cocos-lujing-8', path: '/model-set' },
   { key: 'file-manage', label: '文件', icon: 'icon-cocos-resource-list', path: '/file-manage' },
+  { key: 'mcp-manage', label: 'MCP', icon: 'icon-cocos-region-create', path: '/mcp-manage' },
 ]
 
 const Menu = () => {

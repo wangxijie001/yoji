@@ -34,7 +34,7 @@ export function createModel(config: ModelConfig): ChatOpenAI | ChatDeepSeek {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const realProfile = (m as any).profile
       Object.defineProperty(m, 'profile', {
-        get: () => ({ ...realProfile, maxInputTokens: 1000 }),
+        get: () => ({ ...realProfile, maxInputTokens: 50000}),
         configurable: true,
       })
       return m
@@ -52,7 +52,7 @@ export function createModel(config: ModelConfig): ChatOpenAI | ChatDeepSeek {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const realProfile = (m as any).profile
       Object.defineProperty(m, 'profile', {
-        get: () => ({ ...realProfile, maxInputTokens: 25000 }),
+        get: () => ({ ...realProfile, maxInputTokens: 50000 }),
         configurable: true,
       })
       return m

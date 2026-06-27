@@ -1,10 +1,14 @@
 import { ipcRenderer } from 'electron'
 import type { ChatMessage, MessageHistoryQuery, MessageRecord, StreamCallbacks, StreamChunk } from '../../shared/types'
+import { createListener } from './listener'
 
 // Agent 对话通道
 export const agent = {
   chat: (messages: ChatMessage[]) => ipcRenderer.invoke('agent:chat', messages),
   historyQuery: (query: MessageHistoryQuery) => ipcRenderer.invoke('history:query', query) as Promise<{ ok: boolean; data?: MessageRecord[]; error?: string }>,
+
+  /** Agent 核心重建状态通知 */
+  onRebuilding: createListener<{ status: 'start' | 'done' }>('agent:rebuilding'),
 
   // 流式聊天
   chatStream: (
@@ -31,4 +35,7 @@ export const agent = {
 
     ipcRenderer.send('agent:chat:stream', messages)
   },
+
+  /** 停止当前流式对话 */
+  stop: () => ipcRenderer.send('agent:stop'),
 }

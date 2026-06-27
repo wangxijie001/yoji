@@ -4,6 +4,7 @@ import { z } from "zod";
 import { searchMemories, fetchRawMessages, queryMessageDatabase } from './search-memories'
 import { searchEmotionLog } from './search-emotion-log'
 import { internetSearch } from './internet-search'
+import { uninstallMcpServer, listMcpServers, installMcpServer } from "./mcp-manage";
 
 export const queryCurrentTime = tool(
     async ({}:{}) => {
@@ -22,4 +23,10 @@ export const queryCurrentTime = tool(
 );
 
 
-export const toolList = [ queryCurrentTime, searchMemories, fetchRawMessages, queryMessageDatabase, searchEmotionLog, internetSearch ];
+export const toolList = [ queryCurrentTime,
+    searchMemories, fetchRawMessages, queryMessageDatabase,
+    searchEmotionLog, internetSearch ,
+    listMcpServers,
+    installMcpServer,
+    uninstallMcpServer
+];

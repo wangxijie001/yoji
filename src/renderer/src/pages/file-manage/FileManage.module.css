@@ -24,10 +24,11 @@
             flex-shrink: 0;
             width: 180px;
             height: 100%;
-            background-color: rgba(245, 245, 245, 0.2);
+            /* background-color: rgba(245, 245, 245, 0.2); */
             overflow-y: auto;
-            padding: 6px;
+            padding:10px 6px 0;
             border-right: #e5e5e5 1px solid;
+
             .dirItem {
                 display: flex;
                 align-items: center;
@@ -35,40 +36,49 @@
                 padding: 4px 6px;
                 cursor: pointer;
                 border-radius: 10px;
-                &.active{
+
+                &.active {
                     background: var(--default-active-bg) !important;
-                    >span{
+
+                    >span {
                         color: #fff !important;
                     }
                 }
-                &:hover{
+
+                &:hover {
                     background: var(--default-hover-bg);
                 }
-                >span{
+
+                >span {
                     color: #525252;
                     display: inline-block;
-                    &:nth-child(1){
+
+                    &:nth-child(1) {
                         color: var(--default-link-text-color);
                     }
-                    &:nth-child(2){
+
+                    &:nth-child(2) {
                         flex: 1;
                         padding: 0 6px;
                     }
-                    &:nth-child(3){
+
+                    &:nth-child(3) {
                         font-size: 12px;
                     }
                 }
             }
         }
-        .fileWapper{
+
+        .fileWapper {
             width: 300px;
             height: 100%;
-            background-color: rgba(245, 245, 245, 0.2);
+            /* background-color: rgba(245, 245, 245, 0.2); */
             overflow-y: auto;
             padding: 10px;
             flex-shrink: 0;
             flex-grow: 1;
-            .filePreview{
+
+            .filePreview {
                 box-sizing: border-box;
                 max-height: calc(100% - 200px);
                 min-height: 200px;
@@ -78,37 +88,45 @@
                 align-items: center;
                 justify-content: center;
                 text-align: center;
-                .previewIcon{
+
+                .previewIcon {
                     color: #6e6e6e;
                 }
             }
-            .fileInfo{
+
+            .fileInfo {
                 box-sizing: border-box;
-                >div{
-                   margin-top: 6px;
-                   display: flex;
-                   align-items: center;
-                   justify-content: space-between;
-                   font-size: 12px;
-                   color: #525252;
-                   &.infoHeader{
+
+                >div {
+                    margin-top: 6px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    font-size: 12px;
+                    color: #525252;
+
+                    &.infoHeader {
                         font-size: 14px;
-                        button{
+
+                        button {
                             color: #6e6e6e;
-                           &:hover{
+
+                            &:hover {
                                 color: var(--default-link-text-color);
-                           }
+                            }
                         }
-                   }
-                   &:nth-child(1){
+                    }
+
+                    &:nth-child(1) {
                         font-size: 16px;
                         font-weight: bold;
-                   }
-                   >span:first-child{
-                    font-weight: bold;
-                   }
+                    }
 
-                   
+                    >span:first-child {
+                        font-weight: bold;
+                    }
+
+
                 }
             }
         }

@@ -109,7 +109,7 @@ const ModeSet = () => {
           <div>
             <div className={styles.listItem}>
               <span>api-key</span>
-              <span>
+              <span title={modelList[provider].apiKey}>
                 {modelList[provider].isEdit ?
                   <Input
                     value={modelList[provider].apiKey}
@@ -119,7 +119,7 @@ const ModeSet = () => {
             </div>
             <div className={styles.listItem}>
               <span>model</span>
-              <span>
+              <span title={modelList[provider].model}>
                 {modelList[provider].isEdit ?
                   <Input
                     value={modelList[provider].model}
@@ -129,7 +129,7 @@ const ModeSet = () => {
             </div>
             <div className={styles.listItem}>
               <span>tavily-key</span>
-              <span>
+              <span title={modelList[provider].tavilyApiKey}>
                 {modelList[provider].isEdit ?
                   <Input
                     value={modelList[provider].tavilyApiKey}

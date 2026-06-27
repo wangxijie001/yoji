@@ -86,11 +86,13 @@ class ConfigFile {
 // 导出各配置实例
 export const envConfig = new ConfigFile('env') // 环境变量配置
 export const modelConfig = new ConfigFile('model') // 模型配置
+export const mcpConfig = new ConfigFile('mcp') // MCP 服务器配置
 
 // 配置注册表——按名称取实例，后续新增配置加一行即可
 const configMap: Record<string, ConfigFile> = {
   env: envConfig,
   model: modelConfig,
+  mcp: mcpConfig,
 }
 
 export function getConfig(name: ConfigName): ConfigFile {

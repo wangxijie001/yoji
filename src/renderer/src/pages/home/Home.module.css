@@ -66,6 +66,7 @@
        -webkit-app-region: drag;
        background: transparent;
        height: 20px;
+       user-select: none;
      }
      >div {
       height: calc(100% - 20px);

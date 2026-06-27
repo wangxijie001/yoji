@@ -16,6 +16,7 @@
   --ev-c-gray-3: #32363f;
 
   --default-active-bg: linear-gradient(to right, #36cfc9, #95de64);
+  --default-enabled-bg: linear-gradient(to right, #69b1ff, #87e8de);
   --default-hover-bg: rgba(197, 197, 197, 0.2);
   --default-link-text-color: #13c2c2;
   --default-wapper-bg: linear-gradient(to bottom, #f3fefe, #ffffff);
@@ -83,7 +84,7 @@ body {
   justify-content: center;
   overflow: hidden;
   background-size: cover;
-  user-select: none;
+  /* user-select: none; */
 }
 
 

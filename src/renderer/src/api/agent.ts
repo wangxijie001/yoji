@@ -41,6 +41,11 @@ const agent = {
       },
     })
   },
+
+  /** 停止当前流式对话 */
+  stop(): void {
+    window.api.agent.stop()
+  },
 }
 
 export default agent 

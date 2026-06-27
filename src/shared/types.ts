@@ -6,11 +6,24 @@
  */
 
 //声明文件 类型
-export type ConfigName = 'env' | 'model'
+export type ConfigName = 'env' | 'model' | 'mcp'
 //支持的模型种类
 export type ModelProvider = 'qwen' | 'deepseek'
 //model 配置文件类型
 export type ModelConfig = { apiKey: string; model: string ; baseURL: string }
+//mcp 配置文件类型
+export type McpConfig = { 
+  key: string
+  name: string
+  description: string
+  isEnabled: boolean
+  uuid: string
+  config:{
+         transport: "http" | "sse" | undefined,
+         url: string,
+  }
+  tools?: { name: string; description: string }[]
+}
 
 // 聊天消息
 export type ChatMessage = {

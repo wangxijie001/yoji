@@ -20,11 +20,14 @@ interface Api {
     getAll: (configName: string) => Promise<Record<string, unknown>>
     get: (configName: string, key: string) => Promise<unknown>
     set: (configName: string, key: string, value: unknown) => Promise<void>
+    delete: (configName: string, key: string) => Promise<void>
   }
   agent: {
     chat: (messages: ChatMessage[]) => Promise<ApiResponse>
     historyQuery: (query: MessageHistoryQuery) => Promise<ApiResponse<MessageRecord[]>>
     chatStream: (messages: ChatMessage[], callbacks: StreamCallbacks) => void
+    onRebuilding: (callback: (data: { status: 'start' | 'done' }) => void) => () => void
+    stop: () => void
   }
   emotion: {
     getLog: (limit: number, id?: number) => Promise<ApiResponse<EmotionState[]>>
@@ -37,6 +40,16 @@ interface Api {
     exportFile: (type: 'db' | 'md' | 'all') => Promise<ApiResponse<string>>
     importFile: (type: 'db' | 'md' | 'all') => Promise<ApiResponse<string>>
     showFileInFolder: (fullPath: string) => Promise<ApiResponse<void>>
+  }
+  tts: {
+    getEnabled: () => Promise<ApiResponse<boolean>>
+    setEnabled: (enabled: boolean) => Promise<ApiResponse<boolean>>
+    toggle: () => Promise<ApiResponse<boolean>>
+    onEnabledChanged: (callback: (enabled: boolean) => void) => () => void
+  }
+  mcp: {
+    testConnection: (transport: string, url: string) => Promise<ApiResponse<{ name: string; description: string }[]>>
+    updateMcpStoreVersion: () => Promise<ApiResponse<void>>
   }
 }
 

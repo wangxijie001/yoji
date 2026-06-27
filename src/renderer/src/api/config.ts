@@ -21,8 +21,11 @@ function createConfig(configName: ConfigName) {
 
     set: (key: string, value: unknown): Promise<void> =>
       window.api.config.set(configName, key, value),
+
+    delete: (key: string): Promise<void> => window.api.config.delete(configName, key),
   }
 }
 
 export const envConfig = createConfig('env')
 export const modelConfig = createConfig('model')
+export const mcpConfig = createConfig('mcp')

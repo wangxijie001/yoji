@@ -22,6 +22,8 @@ function resolveModelConfig() {
 
 // Agent 对话——用户输入 + 配置 → Agent 返回结果
 export function register(): void {
+  let currentAbortController: AbortController | null = null
+
   // 查询聊天历史
   ipcMain.handle('history:query', async (_, query: MessageHistoryQuery) => {
     try {
@@ -47,6 +49,11 @@ export function register(): void {
     }
   })
 
+  // 停止当前对话
+  ipcMain.on('agent:stop', () => {
+    currentAbortController?.abort()
+  })
+
   // 流式对话
   ipcMain.on('agent:chat:stream', (event, messages: { role: 'user' | 'assistant'; content: string }[]) => {
     const resolved = resolveModelConfig()
@@ -55,16 +62,24 @@ export function register(): void {
       return
     }
 
+    const abortController = new AbortController()
+    currentAbortController = abortController
+    abortController.signal.addEventListener('abort', () => {
+      currentAbortController = null
+    }, { once: true })
+
     chatStream(resolved.config, messages, {
       onChunk: (content) => {
-        event.sender.send('agent:stream:chunk', content )
+        event.sender.send('agent:stream:chunk', content)
       },
       onDone: () => {
+        currentAbortController = null
         event.sender.send('agent:stream:done')
       },
       onError: (error) => {
+        currentAbortController = null
         event.sender.send('agent:stream:error', { error })
       },
-    })
+    }, abortController.signal)
   })
 }

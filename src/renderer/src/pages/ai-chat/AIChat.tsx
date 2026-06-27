@@ -1,9 +1,10 @@
 import styles from "./AIChat.module.css";
-import { Button, Modal } from "antd";
+import { Button, Drawer, message, Modal } from "antd";
 import { useEffect, useRef, useState } from "react";
 import FormatChat from "../../components/format-chat/index";
 import TextArea from "antd/es/input/TextArea";
 import agentApi from "../../api/agent";
+import ttsApi from "../../api/tts";
 import { ChatMessage, MessageHistoryQuery } from "@shared/types";
 import InfiniteScroll from 'react-infinite-scroller'
 import dayjs from 'dayjs'
@@ -19,17 +20,20 @@ type MessageItem = {
     created_at?: number
 
 };
-type SendMessageEvent =  {event?: React.KeyboardEvent<HTMLTextAreaElement>; interruptType?: ChatMessage['interruptDecision']; interruptMessage?: string }
+type SendMessageEvent = { event?: React.KeyboardEvent<HTMLTextAreaElement>; interruptType?: ChatMessage['interruptDecision']; interruptMessage?: string }
 const AiChat = () => {
     const [inputMessage, setInputMessage] = useState("");
     const [messageList, setMessageList] = useState<MessageItem[]>([]);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const curExecLogScrollRef = useRef<HTMLDivElement>(null);
     const streamRef = useRef({ message: "", illation: '', isFinish: false }); //缓存当前回复消息
     const timerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
     const currentAiIdRef = useRef<string>(''); // 当前正在流式输出的 AI 消息 ID
-    const [hasMore, setHasMore] = useState(true)
+    const [hasMoreHistory, setHasMoreHistory] = useState(true)
+    const [ttsEnabled, setTtsEnabled] = useState(true)
     const [interruptInfo, setInterruptInfo] = useState<{ open: boolean, info?: string; message?: string }>({ open: false })
-
+    const [isShowCurExecLogDrawer, setIsShowCurExecLogDrawer] = useState<boolean>(false)
+    const [curExecLog, setCurExecLog] = useState<{ isLoading: boolean, log: string }>({ isLoading: false, log: '' })
 
 
     useEffect(() => {
@@ -37,13 +41,33 @@ const AiChat = () => {
             scrollToBottom();
         });
 
+        // 初始化 TTS 状态 + 监听变化
+        ttsApi.getEnabled().then(setTtsEnabled)
+        const unsubTts = ttsApi.onEnabledChanged(setTtsEnabled)
+
+        // 监听 Agent 核心重建
+        const unsubRebuild = window.api.agent.onRebuilding(({ status }) => {
+            if (status === 'start') {
+                message.loading({ content: 'AI 核心启动中...', key: 'agent-rebuild', duration: 12 })
+            } else {
+                message.destroy('agent-rebuild')
+                message.success({ content: 'AI 核心已就绪', duration: 2 })
+            }
+        })
+
+        return () => { unsubTts(); unsubRebuild() }
     }, []);
 
     const scrollToBottom = () => {
-        scrollRef.current?.scrollIntoView({
+        scrollRef.current && scrollRef.current?.scrollIntoView({
             behavior: "instant",
             block: "end",
         });
+        curExecLogScrollRef.current && curExecLogScrollRef.current?.scrollIntoView({
+            behavior: "instant",
+            block: "end",
+        });
+
     };
 
     const queryChatHistory = async (query?: MessageHistoryQuery) => {
@@ -59,11 +83,17 @@ const AiChat = () => {
                 setMessageList([..._messageList, ...messageList]);
             } else {
                 if (data.length === 0) {
-                    setHasMore(false)
+                    setHasMoreHistory(false)
                 }
             }
         });
     };
+
+    const openCurExecLog = () => {
+        const { isFinish, illation } = streamRef.current
+        setIsShowCurExecLogDrawer(!isShowCurExecLogDrawer)
+        setCurExecLog({ isLoading: !isFinish, log: isFinish ? '' : illation })
+    }
 
     // 加载更多消息
     const loadMore = () => {
@@ -75,7 +105,7 @@ const AiChat = () => {
     }
 
 
-    const sendMessage = async ({event, interruptType, interruptMessage}: SendMessageEvent) => {
+    const sendMessage = async ({ event, interruptType, interruptMessage }: SendMessageEvent) => {
         const userMsg = inputMessage || interruptMessage;
         if (event?.shiftKey || !userMsg) return;
         setInputMessage("");
@@ -111,19 +141,21 @@ const AiChat = () => {
             setMessageList((prev) =>
                 prev.map((item) =>
                     item.id === aiId
-                        ? { ...item, content: message, illation, loading: !isFinish }
+                        ? { ...item, content: message, illation: '', loading: !isFinish }
                         : item,
                 ),
             );
+            setCurExecLog({ isLoading: !isFinish, log: illation })
+
             scrollToBottom()
-        }, 100);
+        }, 200);
 
         setMessageList((prev) => [...prev, userMessage, aiMessage]);
         scrollToBottom()
         // setMessageList((prev) => [...prev, aiMessage]);
         // 流式请求：只负责往 streamRef 喂数据
         agentApi.chatStream(
-            [{ role: "user", interruptDecision:interruptType, content: userMsg }],
+            [{ role: "user", interruptDecision: interruptType, content: userMsg }],
             {
                 onChunk: (_content) => {
                     const { type, content } = _content;
@@ -131,6 +163,8 @@ const AiChat = () => {
                         streamRef.current.message += content;
                     } else if (type === 'requires_approval') {
                         setInterruptInfo({ open: true, info: content, message: '' })
+                    } else {
+                        streamRef.current.illation = streamRef.current.illation + content;
                     }
                 },
                 onDone: () => {
@@ -184,7 +218,7 @@ const AiChat = () => {
                 <InfiniteScroll
                     isReverse        // 聊天模式：滚到顶部 = 加载更早
                     loadMore={loadMore}
-                    hasMore={hasMore}
+                    hasMore={hasMoreHistory}
                     useWindow={false}
                     threshold={100}
                     loader={<div key="loader">加载中...</div>}
@@ -225,13 +259,32 @@ const AiChat = () => {
                     />
                 </div>
                 <div className={styles.operate}>
-                    <div >
+                    <div>
+                        <i
+                            className="iconfont icon-cocos-a-shujujianguan1"
+                            style={{ fontSize: 20, color: isShowCurExecLogDrawer ? 'var(--default-link-text-color)' : '#999', cursor: 'pointer' }}
+                            onClick={() => openCurExecLog()}
+                            title={'当前运行状态'}
+                        />
+                        <i
+                            className="iconfont icon-cocos-yuyin"
+                            style={{ fontSize: 20, color: ttsEnabled ? 'var(--default-link-text-color)' : '#999', cursor: 'pointer' }}
+                            onClick={() => ttsApi.toggle().then(setTtsEnabled)}
+                            title={ttsEnabled ? '语音播报已开启' : '语音播报已关闭'}
+                        />
                     </div>
-                    {inputMessage && (
+                    {inputMessage && !curExecLog.isLoading && (
                         <Button
                             type="primary"
                             onClick={() => sendMessage({})}
                             icon={<i className="iconfont icon-cocos-arrowTop-fill" style={{ fontSize: 20 }} />}
+                        />
+                    )}
+                    {curExecLog.isLoading && (
+                        <Button
+                            type="primary"
+                            onClick={() => agentApi.stop()}
+                            icon={<i className="iconfont icon-cocos-zhongzhi" style={{ fontSize: 20 }} />}
                         />
                     )}
                 </div>
@@ -251,11 +304,37 @@ const AiChat = () => {
                         placeholder="执行建议"
                     />
                     <div className={styles.buttonWapper}>
-                        <Button color="primary"  onClick={() => onUserApproval('approve')}>同意</Button>
+                        <Button color="primary" onClick={() => onUserApproval('approve')}>同意</Button>
                         <Button onClick={() => onUserApproval('reject')}>拒绝</Button>
                     </div>
                 </div>
             </Modal>
+            <Drawer
+                size='50%'
+                placement='right'
+                onClose={() => setIsShowCurExecLogDrawer(false)}
+                open={isShowCurExecLogDrawer}
+                title={'当前执行日志'}
+                mask={false}
+                style={{ background: 'var(--default-drawer-bg)' }}
+                styles={{ header: { padding: ' 8px 16px', border: 'none' }, body: { padding: ' 0 10px 0 20px' } }}
+
+            >
+                <div className={`${styles.paramsDsc} thin-scrollbar`}>
+                    <div>
+                        <FormatChat message={curExecLog.log || '当前暂无任何任务正在执行'} fontSize="12px" />
+                    </div>
+                    {curExecLog.isLoading && (
+                        <span className={styles.dotWapper}>
+                            <span className={styles.dot} />
+                            <span className={styles.dot} />
+                            <span className={styles.dot} />
+                        </span>
+                    )}
+                    <div ref={curExecLogScrollRef} />
+                </div>
+
+            </Drawer>
         </main>
     );
 };

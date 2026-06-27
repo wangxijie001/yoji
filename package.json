@@ -1,6 +1,6 @@
 {
   "name": "yoji",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "An Electron application with React and TypeScript",
   "main": "./out/main/index.js",
   "author": "example.com",
@@ -25,10 +25,11 @@
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
     "@langchain/core": "^1.2.1",
-    "@langchain/deepseek": "^1.0.27",
+    "@langchain/deepseek": "^1.1.3",
     "@langchain/langgraph": "^1.4.6",
     "@langchain/langgraph-checkpoint-sqlite": "^1.0.3",
-    "@langchain/openai": "^1.4.7",
+    "@langchain/mcp-adapters": "^1.1.3",
+    "@langchain/openai": "^1.5.3",
     "@langchain/tavily": "^1.2.0",
     "@xenova/transformers": "^2.17.2",
     "antd": "^6.4.3",
@@ -43,7 +44,8 @@
     "react-router-dom": "^7.17.0",
     "rehype-prism-plus": "^2.0.2",
     "remark-gfm": "^4.0.1",
-    "sqlite-vec": "^0.1.9"
+    "sqlite-vec": "^0.1.9",
+    "uuid": "^14.0.1"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",

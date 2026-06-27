@@ -16,6 +16,7 @@ import { createMiddleware, SystemMessage } from 'langchain'
 export const dynamicContext = createMiddleware({
   name: "dynamicContext",
     wrapModelCall: (request, handler) => {
+      
     // 1. 获取需要注入的动态信息
        // @ts-ignore
     const dynamicInfo = `你当前的情绪:${request.runtime?.context?.emotion || '未知'}`

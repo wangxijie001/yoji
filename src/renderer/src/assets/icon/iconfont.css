@@ -1,8 +1,8 @@
 @font-face {
   font-family: "iconfont"; /* Project id 3158929 */
-  src: url('iconfont.woff2?t=1781343630490') format('woff2'),
-       url('iconfont.woff?t=1781343630490') format('woff'),
-       url('iconfont.ttf?t=1781343630490') format('truetype');
+  src: url('iconfont.woff2?t=1782578294150') format('woff2'),
+       url('iconfont.woff?t=1782578294150') format('woff'),
+       url('iconfont.ttf?t=1782578294150') format('truetype');
 }
 
 .iconfont {
@@ -11,6 +11,18 @@
   font-style: normal;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-cocos-zhongzhi:before {
+  content: "\e651";
+}
+
+.icon-cocos-anzhuang:before {
+  content: "\e693";
+}
+
+.icon-cocos-xiezai:before {
+  content: "\e6fa";
 }
 
 .icon-cocos-shouye:before {
