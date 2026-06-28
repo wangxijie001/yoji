@@ -11,8 +11,6 @@ import {
 import { initEmotionTable } from './emotion/schema'
 import { toolList } from './tools'
 import { initSkills } from './skills'
-import { z } from 'zod/v4'
-import { dynamicContext } from './middleware/dynamic-context'
 import { toolErrorHandler } from './middleware/tool-error-handler'
 import { createMcpExecuteAgent } from './children-agent/mcp-execute-agent'
 import { getMcpStoreVersion } from '../ipc/mcp'
@@ -79,16 +77,13 @@ export async function createAgent(config: ModelConfig): Promise<DeepAgent> {
     }),
     memory: ['/AGENTS.md'],
     skills: ['/skills/builtin/', '/skills/user/'],
-    middleware: [dynamicContext, toolErrorHandler],
+    middleware: [toolErrorHandler],
     checkpointer: getCheckpointer(),
     interruptOn: {
       execute: { allowedDecisions: ['approve', 'reject'] },
       install_mcp_server: { allowedDecisions: ['approve', 'reject'] },
       uninstall_mcp_server: { allowedDecisions: ['approve', 'reject'] }
-    },
-    contextSchema: z.object({
-      emotion: z.string().optional()
-    })
+    }
   }) as unknown as DeepAgent
 
   broadcast('agent:rebuilding', { status: 'done' })

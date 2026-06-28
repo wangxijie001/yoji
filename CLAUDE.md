@@ -55,8 +55,9 @@ src/main/
     │   └── emotion_model.ts # LLM 情绪分析
     ├── tools/             # Agent 工具集（含 mcp-manage.ts MCP 管理工具）
     ├── skills/            # 内置 Skills
-    ├── middleware/         # Agent 中间件
-    └── utils/             # checkpoint 清理、chat-history、TTS 语音播报等
+    ├── middleware/         # Agent 中间件（tool-error-handler: 工具调用容错）
+    ├── children-agent/    # MCP 执行子 Agent
+    └── utils/             # checkpoint 清理、chat-history、TTS 播报、token-logger、embedding 等
 ```
 
 ### 2. 预加载脚本 (`src/preload/`)
@@ -191,6 +192,8 @@ companion/
 - `changeEmotion()` 在每次对话后触发，综合考虑天气、时间、对话内容
 - 结果写入 `emotion_log` 表（保留最近 300 条）
 - 写完自动 `broadcast('emotion:updated', ...)` 通知渲染进程更新背景
+- **情绪注入方式**：`HumanMessage` + `unshift` 直接塞入 `langchainMessages` 队首，进 checkpoint 保证缓存前缀稳定
+- **缓存优化**：不再使用 `dynamicContext` middleware（`wrapModelCall` 每轮多次注入打乱前缀），当前缓存命中率 ~99.8%
 
 ### 记忆系统
 文件：`docs/companion/memory.md`。
@@ -252,3 +255,6 @@ scrollbar-width: thin;
 - **Agent 框架**：LangChain `deepagents`，技术文档按主题拆分在 `docs/langchain/`，入口 `docs/langchain/README.md`。
 - **AI 伴侣行为模型**：激素情绪系统、三层记忆等设计文档在 `docs/companion/`，入口 `docs/companion/README.md`。
 - **API 封装分层**：渲染进程 `src/api/` 封装 `window.api` 调用，统一处理 error toast 和空值兜底，页面组件直接调用 `src/api/` 而非 `window.api`。
+- **缓存优化**：LangChain `wrapModelCall` middleware 每轮多次注入动态消息会打乱前缀，破坏 DeepSeek 缓存。动态上下文应直接写入 `langchainMessages` 队首（`HumanMessage` + `unshift`），借 checkpoint 固定位置，保证缓存命中率 99%+。
+- **pnpm 补丁**：`patches/@langchain__langgraph-sdk.patch` 修复 langgraph-sdk 硬编码 `.pnpm` 路径导致 electron-builder 打包后找不到模块的问题。`p-retry`、`p-queue` 作为直接依赖配合补丁使用。
+- **构建配置**：`asar: false`（pnpm 虚拟仓库 + asar 压缩不兼容），`pnpm.overrides` 谨慎使用（避免 deepagents 依赖冲突）。

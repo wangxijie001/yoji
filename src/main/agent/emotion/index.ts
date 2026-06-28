@@ -123,8 +123,8 @@ export async function changeEmotion(message: { role: string; content: string }[]
   next.emotion = result.emotion
   next.display = JSON.stringify(result.display)
   next.description = result.description
-  // 更新当前情绪描述
-  currentEmotion = result.emotion
+  // 更新当前情绪描述（只取状态分析部分，丢弃激素数值列表）
+  currentEmotion = result.emotion.split('状态分析：')[1]?.trim() || result.emotion
   insertEmotion(next)
   broadcast('emotion:updated', next)
 }

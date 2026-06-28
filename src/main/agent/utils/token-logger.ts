@@ -1,19 +1,16 @@
 import { BaseCallbackHandler } from '@langchain/core/callbacks/base'
 import type { Serialized } from '@langchain/core/load/serializable'
-// import type { BaseMessage } from '@langchain/core/messages'
 import type { LLMResult } from '@langchain/core/outputs'
-import { writeFileSync, mkdirSync } from 'fs'
+import { appendFileSync, mkdirSync } from 'fs'
 import { join } from 'path'
 import { app } from 'electron'
 
 /**
- * 临时诊断工具：拦截模型调用，记录完整 prompt 到文件
+ * 缓存命中率统计工具
  *
- * 用法：
- *   在 model.ts 创建模型时加上 callbacks: [tokenLogger]
- *   每次对话后查看 userData/companion/prompt-logs/ 下的 JSON 文件
- *
- * 不再需要时删除 import 和 callbacks 即可
+ * 拦截模型调用，记录每次请求的 token 用量和缓存命中率到文件。
+ * 用法：model.ts 创建模型时加上 callbacks: [tokenLogger]
+ * 日志：userData/companion/prompt-logs/cache-stats.jsonl
  */
 
 const LOG_DIR = join(app.getPath('userData'), 'companion', 'prompt-logs')
@@ -24,48 +21,55 @@ class TokenLogger extends BaseCallbackHandler {
 
   async handleLLMStart(
     _llm: Serialized,
-    prompts: string[],
+    _prompts: string[],
     _runId: string,
     _parentRunId?: string,
-    extraParams?: Record<string, unknown>,
+    _extraParams?: Record<string, unknown>,
     _tags?: string[],
     _metadata?: Record<string, unknown>,
   ): Promise<void> {
-    const timestamp = Date.now()
-    const totalChars = prompts.reduce((sum, p) => sum + p.length, 0)
-
-    // 工具信息通过 bindTools 注入，不在文本 prompt 里
-    const tools = (extraParams as any)?.invocation_params?.tools ?? []
-    const toolList = tools.map((t: any) => ({
-      name: t.function?.name ?? t.name ?? 'unknown',
-      description: (t.function?.description ?? t.description ?? '').slice(0, 200),
-      parameters: t.function?.parameters ?? t.parameters,
-    }))
-
-    const dump = {
-      timestamp: new Date(timestamp).toISOString(),
-      textChars: totalChars,
-      estimatedTextTokens: Math.round(totalChars / 3.5),
-      toolCount: toolList.length,
-      tools: toolList,
-      prompts: prompts.map((p) => ({
-        length: p.length,
-        preview: p.slice(0, 500),
-        full: p,
-      })),
-    }
-
-    const file = join(LOG_DIR, `prompt-${timestamp}.json`)
-    writeFileSync(file, JSON.stringify(dump, null, 2), 'utf-8')
-    console.log(`[TokenLogger] 文本 ${Math.round(totalChars / 3.5)}t + ${toolList.length} 工具 → ${file}`)
+    // 诊断完整上下文时取消注释
+    // const timestamp = Date.now()
+    // const totalChars = _prompts.reduce((sum, p) => sum + p.length, 0)
+    // const tools = (_extraParams as any)?.invocation_params?.tools ?? []
+    // const file = join(LOG_DIR, `prompt-${timestamp}.json`)
+    // writeFileSync(file, JSON.stringify({ ... }, null, 2), 'utf-8')
   }
 
   async handleLLMEnd(
-    _output: LLMResult,
+    output: LLMResult,
     _runId: string,
     _parentRunId?: string,
   ): Promise<void> {
-    // 可选：记录输出 token 用量
+    let usage: any = null
+
+    // 优先从消息 response_metadata 取，否则从 llmOutput 取
+    const message = (output.generations[0]?.[0] as any)?.message
+    if (message?.response_metadata?.usage) {
+      usage = message.response_metadata.usage
+    }
+    if (!usage && output.llmOutput) {
+      const raw = output.llmOutput as any
+      usage = raw?.usage || raw?.tokenUsage
+    }
+    if (!usage) return
+
+    const inputTokens: number = usage.prompt_tokens ?? usage.promptTokens ?? 0
+    const outputTokens: number = usage.completion_tokens ?? usage.completionTokens ?? 0
+    const cacheHit: number = usage.prompt_cache_hit_tokens || 0
+    const cacheMiss: number = usage.prompt_cache_miss_tokens ?? (inputTokens - cacheHit)
+    const hitRate = inputTokens > 0 ? ((cacheHit / inputTokens) * 100).toFixed(1) : '0.0'
+
+    console.log(`[TokenLogger] 输入 ${inputTokens}t | 缓存命中 ${cacheHit}t (${hitRate}%) | 未命中 ${cacheMiss}t | 输出 ${outputTokens}t`)
+
+    appendFileSync(join(LOG_DIR, 'cache-stats.jsonl'), JSON.stringify({
+      time: new Date().toISOString(),
+      input: inputTokens,
+      hit: cacheHit,
+      miss: cacheMiss,
+      rate: `${hitRate}%`,
+      output: outputTokens,
+    }) + '\n', 'utf-8')
   }
 }
 

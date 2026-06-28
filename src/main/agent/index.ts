@@ -52,7 +52,7 @@ export async function chatStream(
         _message = new AIMessage({ content: m.content })
         break
       default:
-        _message = new HumanMessage({ content: m.content })
+        _message = new HumanMessage({ content: `用户消息：${m.content}` })
         userMessage += m.content
         interruptDecision = m.interruptDecision
         break
@@ -95,9 +95,13 @@ export async function chatStream(
       role: 'user',
       content: userMessage
     })
+    const emotion = getCurrentEmotionInfo() 
+    if (emotion){
+      const _systemMessage = new HumanMessage({ content: `我是你的情绪提示，你当前的情绪：${emotion}` })
+      langchainMessages.unshift(_systemMessage)
+    }    
 
     const streamInput: any = interruptCommand || { messages: langchainMessages }
-    // 动态上下文（不入 history）：情绪通过 contextSchema + middleware 注入
     const streamConfig: any = {
       ...threadConfig,
       streamMode: ['messages', 'updates'],
@@ -106,8 +110,6 @@ export async function chatStream(
       signal,
     }
 
-    const emotion = getCurrentEmotionInfo()
-    if (emotion) streamConfig.context = { emotion }
     const stream: any = await agent.stream(streamInput, streamConfig)
     let totalMessages = ''
     for await (const [namespace, mode, data] of stream) {
