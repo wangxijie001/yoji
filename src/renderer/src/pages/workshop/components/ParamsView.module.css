@@ -1,0 +1,119 @@
+.panel {
+  height: 100%;
+  box-sizing: border-box;
+  padding: 10px 0;
+}
+
+.params {
+  height: calc(100% - 40px);
+  overflow-y: auto;
+
+  >div {
+    >span {
+      font-size: 12px;
+      color: #696969;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      >button {
+        font-size: 12px;
+      }
+    }
+
+    >div {
+      margin-top: 2px;
+      margin-bottom: 10px;
+    }
+  }
+
+  input, textarea {
+    &::placeholder {
+      font-size: 12px;
+    }
+
+    ;
+    font-size: 12px;
+  }
+}
+
+.mcpTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  margin: 2px 4px 2px 0;
+  font-size: 12px;
+
+  >i {
+    cursor: pointer;
+    font-size: 14px;
+    color: #999;
+
+    &:hover {
+      color: #ff4d4f;
+    }
+  }
+}
+
+.footer {
+  text-align: center;
+
+  >button {
+    margin: 0 10px;
+  }
+}
+
+.mcpListWapper {
+  height: calc(100% - 50px);
+  overflow-y: auto;
+
+  >.mcpItem {
+    background: var(--default-content-bg);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    padding: 8px 12px;
+
+    >div {
+      &:first-child {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: bold;
+
+        >span {
+          flex: 1;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        >i {
+          color: #696969;
+          cursor: pointer;
+
+          &:hover {
+            color: var(--default-hover-text-color);
+          }
+        }
+
+        >p {
+          font-size: 12px;
+        }
+      }
+
+      &:last-child {
+        padding: 6px 0 0 6px;
+        color: #696969;
+        font-size: 12px;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        line-clamp: 3;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+  }
+}

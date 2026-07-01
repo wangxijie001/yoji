@@ -48,3 +48,17 @@ export const formatTime = (time?: number | string) => {
   if (d.isSame(now, 'year')) return d.format('MM月DD日 HH:mm')
   return d.format('YYYY年MM月DD日 HH:mm')
 }
+
+// 文件大小格式化：根据字节数自动展示 B/KB/MB/GB
+export const formatFileSize = (bytes?: number | null): string => {
+  if (bytes == null || bytes < 0) return ''
+  if (bytes === 0) return '0 B'
+
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  const k = 1024
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  const idx = Math.min(i, units.length - 1)
+  const value = bytes / Math.pow(k, idx)
+
+  return value.toFixed(idx === 0 ? 0 : 1) + ' ' + units[idx]
+}

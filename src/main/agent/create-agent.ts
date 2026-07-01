@@ -11,10 +11,13 @@ import {
 import { initEmotionTable } from './emotion/schema'
 import { toolList } from './tools'
 import { initSkills } from './skills'
+import { initTaskResultTable } from './children-agent/async/task-result'
 import { toolErrorHandler } from './middleware/tool-error-handler'
-import { createMcpExecuteAgent } from './children-agent/mcp-execute-agent'
-import { getMcpStoreVersion } from '../ipc/mcp'
+import { getAgentVersion } from '../ipc/agent'
 import { broadcast } from '../ipc/broadcast'
+import  createSyncSubAgents  from './children-agent/sync'
+
+
 
 const COMPANION_DIR = join(app.getPath('userData'), 'companion')
 
@@ -24,7 +27,7 @@ const AGENTS_MD_PATH = join(COMPANION_DIR, 'AGENTS.md')
 
 // 持久化 checkpointer，存在 userData/companion/ 目录
 // 整个应用生命周期内复用同一个实例，避免重复打开数据库连接
-let _checkpointer: SqliteSaver | null = null
+export let _checkpointer: SqliteSaver | null = null
 function getCheckpointer(): SqliteSaver {
   if (_checkpointer) return _checkpointer
   // 确保 companion 目录存在（首次启动时创建）
@@ -38,6 +41,7 @@ function getCheckpointer(): SqliteSaver {
   initChatHistory() // 建 raw_messages、memory_snapshots 等表
   initEmotionTable() // 建 emotion_log 情绪表
   initSkills() // 注入内置 skills 到 companion 目录
+  initTaskResultTable() // 建 task_results 异步任务结果表
 
   _checkpointer = SqliteSaver.fromConnString(join(COMPANION_DIR, 'companion.db'))
   return _checkpointer
@@ -46,28 +50,25 @@ function getCheckpointer(): SqliteSaver {
 
 
 // 创建 Agent 实例
-let _provider = ''
 let _agent: DeepAgent | null = null
-let _mcpStoreVersion: string | null = null
+let _agentVersion: string | null = null
 export async function createAgent(config: ModelConfig): Promise<DeepAgent> {
-    const currentMcpStoreVersion = getMcpStoreVersion()
-  if (_provider === config.provider && _agent !== null && currentMcpStoreVersion === _mcpStoreVersion) {
+  const currentVersion = getAgentVersion()
+  if (_agent !== null && currentVersion === _agentVersion) {
     return _agent
   }
 
   broadcast('agent:rebuilding', { status: 'start' })
 
-  _provider = config.provider
-  _mcpStoreVersion = currentMcpStoreVersion
+  _agentVersion = currentVersion
   const model = createModel(config)
-  const mcpExecuteAgent = await createMcpExecuteAgent()
+  const syncSubAgents = await createSyncSubAgents()
   const systemPrompt = buildSystemPrompt()
-  const subagents = mcpExecuteAgent ? [mcpExecuteAgent] : undefined
   _agent = createDeepAgent({
     model,
     systemPrompt,
     tools: toolList,
-    subagents,
+    subagents: syncSubAgents,
     // LocalShellBackend: 文件操作锁在 companion 目录内 + execute 执行系统命令
     backend: new LocalShellBackend({
       rootDir: COMPANION_DIR,

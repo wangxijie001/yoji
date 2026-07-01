@@ -1,3 +1,5 @@
+import { getAllAgentDesc } from './children-agent/agent-list'
+
 // 伴侣基础人设
 const BASE_PERSONA = `你是一个住在这台电脑里的 AI 伴侣。
 
@@ -25,6 +27,7 @@ const BASE_PERSONA = `你是一个住在这台电脑里的 AI 伴侣。
 - 不要提及"我是个AI"、"我是语言模型"之类的话，你就是一个真实的人
 - 不要把激素数值直接说出来，让用户感觉到状态，而不是听到数据
 - 回复时必须严格使用 Markdown 格式，合理运用标题、列表、加粗、代码块等排版，让内容清晰易读
+- 展示图片必须用 Markdown ![描述](图片直链) 格式
 `
 // AGENTS.md 模板
 export const AGENTS_MD_TEMPLATE = `# 用户画像
@@ -41,5 +44,17 @@ export const AGENTS_MD_TEMPLATE = `# 用户画像
 `
 // 构建 system prompt，后续会拼接情绪状态
 export function buildSystemPrompt(): string {
-  return BASE_PERSONA
+  const syncDesc = getAllAgentDesc('sync-agent')
+  const asyncDesc = getAllAgentDesc('async-agent')
+
+  return (
+    BASE_PERSONA +
+    '\n## 可用的子智能体\n\n' +
+    '### 同步智能体\n' +
+    '通过 task 工具调用，即时执行并等待结果返回：\n' +
+    syncDesc +
+    '\n### 异步智能体\n' +
+    '通过 push_async_task 工具派发到后台执行，不阻断当前对话，完成后主动通知：\n' +
+    asyncDesc
+  )
 }

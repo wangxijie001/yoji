@@ -34,3 +34,11 @@ export function cleanupCheckpoints(keepLatest: number = 1): void {
 
   db.close()
 }
+
+// 删除指定 thread 的所有 checkpoint（子 Agent 用完即清）
+export function deleteThreadCheckpoints(threadId: string): void {
+  const db = new Database(DB_PATH)
+  db.prepare('DELETE FROM writes WHERE thread_id = ?').run(threadId)
+  db.prepare('DELETE FROM checkpoints WHERE thread_id = ?').run(threadId)
+  db.close()
+}

@@ -6,6 +6,7 @@ import { McpConfig } from '@shared/types'
 import { v4 as uuidv4 } from 'uuid'
 import { mcpConfig } from '@renderer/api/config'
 import mcpApi from '@renderer/api/mcp'
+import agentApi from '@renderer/api/agent'
 
 type McpConfigItem = McpConfig & { isEdit?: boolean, isAddModel?: boolean }
 const McpManage = () => {
@@ -22,17 +23,18 @@ const McpManage = () => {
         if (modelConfigs) {
             const list = Object.values(modelConfigs).reverse()
             setMcpList([{
-                key: '',
-                name: '',
-                description: '',
+                key: 'new-mcp',
+                name: '新增',
+                description: '新增一个MCP服务链接',
                 config: {
                     transport: 'sse',
-                    url: '',
+                    url: 'https://xxxxxxx.com/mcp',
                 },
                 isEnabled: false,
                 isAddModel: true,
                 isEdit: true,
                 uuid: "new_mcp_model",
+                version: '',
                 tools: [],
             }, ...list])
         }
@@ -62,7 +64,7 @@ const McpManage = () => {
         setMcpList([...mcpList])
         mcpConfig.set(currentMcp.uuid, currentMcp)
         message.success(currentMcp.isEnabled ? '已启用' : '已禁用')
-        await mcpApi.updateMcpStoreVersion()
+        await agentApi.updateVersion()
     }
 
     // 保存配置
@@ -78,6 +80,7 @@ const McpManage = () => {
         const tools = await mcpApi.testConnection(config.transport, config.url).catch(() => null)
         if (!tools) return
         message.success(`连接成功，发现 ${tools.length} 个工具, 配置已保存`)
+        const version = uuidv4()
         mcpConfig.set(uuid, {
             key,
             uuid,
@@ -86,6 +89,7 @@ const McpManage = () => {
             config,
             isEnabled,
             tools,
+            version
         })
         mcpList[index] = {
             ...mcpList[index],
@@ -99,7 +103,7 @@ const McpManage = () => {
             setMcpList([...mcpList])
         }
         // 更新 MCP 库版本号，触发 agent 重建
-        await mcpApi.updateMcpStoreVersion()
+        await agentApi.updateVersion()
     }
 
     // 卸载配置
@@ -109,7 +113,7 @@ const McpManage = () => {
         setMcpList(mcpList.filter((item) => item.uuid !== uuid))
         message.success('卸载成功')
         // 更新 MCP 库版本号，触发 agent 重建
-        await mcpApi.updateMcpStoreVersion()
+        await agentApi.updateVersion()
     }
 
 

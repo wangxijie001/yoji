@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { v4 as uuidv4 } from 'uuid'
 import { MultiServerMCPClient } from '@langchain/mcp-adapters'
 import { mcpConfig } from '../../config'
-import { updateMcpStoreVersion } from '../../ipc/mcp'
+import { updateAgentVersion } from '../../ipc/agent'
 
 /**
  * 卸载 MCP 服务器工具
@@ -16,7 +16,7 @@ export const uninstallMcpServer = tool(
       if (!target) return `卸载失败：未找到 uuid 为 "${uuid}" 的 MCP 服务器。可用 list_mcp_servers 查看已安装列表。`
 
       mcpConfig.delete(uuid)
-      await updateMcpStoreVersion()
+      await updateAgentVersion()
       return `已成功卸载 MCP 服务器 "${target.name}"（${target.key}），下一轮对话生效。`
     } catch (err) {
       return `卸载失败：${(err as Error).message}`
@@ -100,8 +100,7 @@ export const installMcpServer = tool(
         new Promise<never>((_, reject) => {
           timeoutId = setTimeout(() => reject(new Error('连接超时(15s)')), 15000)
         })
-      ])
-      clearTimeout(timeoutId!)
+      ]).finally(() => clearTimeout(timeoutId!))
 
       // 连接成功，保存配置（传 uuid 则更新，不传则新建）
       const uuid = existingUuid || uuidv4()
@@ -118,7 +117,7 @@ export const installMcpServer = tool(
         }))
       })
 
-      await updateMcpStoreVersion()
+      await updateAgentVersion()
 
       return `安装成功！MCP 服务器 "${name}" 已启用，发现 ${tools.length} 个工具：${tools.map((t: { name: string }) => t.name).join('、')}。下一轮对话即可使用。`
     } catch (err) {

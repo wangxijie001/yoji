@@ -1,6 +1,6 @@
 import { getCurrentEmotion, insertEmotion } from './schema'
 import { broadcast } from '../../ipc/broadcast'
-import { queryMessagesHistory } from '../utils/chat-history'
+import { envConfig } from '../../config'
 import { getWeather } from '../utils/weather'
 import { analyzeEmotion } from './emotion_model'
 import dayjs from 'dayjs'
@@ -48,15 +48,14 @@ export async function changeEmotion(message: { role: string; content: string }[]
   const new_emotion = { dopamine,serotonin,gaba,cortisol,adrenaline,oxytocin,endorphin, melatonin,source, emotion, description,created_at }
 
   //时间影响逻辑
-  const latest = queryMessagesHistory(undefined, 3)
-  const lastMsg = latest[0] ?? null
+  const lastUserMsg = envConfig.get<{ createdAt: number; content: string }>('latestUserMessage')
   const now = Date.now() // 当前时间戳
   let last_chat_time_span = '' //上次聊天的时间间隔
   let weather_info: string = '' //天气信息
   let current_time = '' //当前时间
 
-  if (lastMsg) {
-    const { created_at: lastMsgCreatedAt } = lastMsg
+  if (lastUserMsg) {
+    const { createdAt: lastMsgCreatedAt } = lastUserMsg
     get_weather_at = get_weather_at || lastMsgCreatedAt
     // 距上次聊天的时间
     const minutesSinceLastChat = (now - lastMsgCreatedAt) / 1000 / 60 // 转换为分钟

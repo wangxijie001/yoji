@@ -5,6 +5,7 @@ import { gzipSync, gunzipSync } from 'zlib'
 import mime from 'mime'
 
 const COMPANION_DIR = join(app.getPath('userData'), 'companion')
+const CONFIGS_DIR = join(app.getPath('userData'), 'configs')
 const PWD_TOKEN = 'agent_love_001'
 
 export type ExportType = 'db' | 'md' | 'all'
@@ -133,6 +134,16 @@ export function register(): void {
           }
         }
 
+        // 同时打包 configs 目录（模型配置、MCP 配置等）
+        const configFiles: Record<string, string> = {}
+        if (existsSync(CONFIGS_DIR)) {
+          for (const name of readdirSync(CONFIGS_DIR)) {
+            if (name.endsWith('.json')) {
+              configFiles[name] = readFileSync(join(CONFIGS_DIR, name), 'utf-8')
+            }
+          }
+        }
+
         const bundle = JSON.stringify({
           manifest: {
             app: 'yoji',
@@ -141,6 +152,7 @@ export function register(): void {
           },
           textFiles,
           binFiles,
+          configFiles,
         })
 
         writeFileSync(result.filePath, gzipSync(bundle))
@@ -210,6 +222,14 @@ export function register(): void {
           mkdirSync(join(dest, '..'), { recursive: true })
           writeFileSync(dest, Buffer.from(b64, 'base64'))
           count++
+        }
+        // 恢复配置文件
+        if (bundle.configFiles) {
+          mkdirSync(CONFIGS_DIR, { recursive: true })
+          for (const [name, content] of Object.entries<string>(bundle.configFiles)) {
+            writeFileSync(join(CONFIGS_DIR, name), content, 'utf-8')
+            count++
+          }
         }
 
         return { ok: true, data: `已导入 ${count} 个文件，重启后生效` }

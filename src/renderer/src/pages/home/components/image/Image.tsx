@@ -3,28 +3,40 @@ import styles from './Image.module.css'
 
 // 视频放 src/renderer/src/assets/video/，用 Vite 标准 import 拿 URL
 import imageMark from '@renderer/assets/image/imageMark.jpeg'
-import calmVideo from '@renderer/assets/video/calm.mp4'
+
 import shyVideo from '@renderer/assets/video/shy.mp4'
 import hurtVideo from '@renderer/assets/video/hurt.mp4'
 import expectVideo from '@renderer/assets/video/expect.mp4'
 import sadVideo from '@renderer/assets/video/sad.mp4'
 import happyVideo from '@renderer/assets/video/happy.mp4'
 import tiredVideo from '@renderer/assets/video/tired.mp4'
-
+import excitingVideo from '@renderer/assets/video/exciting.mp4'
+import fidgetyVideo from '@renderer/assets/video/fidgety.mp4'
+import indignationVideo from '@renderer/assets/video/indignation.mp4'
+import easeVideo from '@renderer/assets/video/ease.mp4'
+import wrongedVideo from '@renderer/assets/video/wronged.mp4'
+import worriedVideo from '@renderer/assets/video/worried.mp4'
+import concernVideo from '@renderer/assets/video/concern.mp4'
 
 
 // 情绪 → 视频文件映射（加好视频后在这里 import 并填入）
 const VIDEO_MAP: Record<string, string> = {
     '开心': happyVideo,
-    '平静': calmVideo,
-    '害羞': shyVideo,
-    '疲惫': tiredVideo,
+    '兴奋': excitingVideo,
     '期待': expectVideo,
+    '安心': easeVideo,
+    '平静': easeVideo,
     '好奇': expectVideo,
-    '悲伤': sadVideo,
-    '委屈': hurtVideo,
-    '失落': hurtVideo,
+    '害羞': shyVideo,
     '孤独': hurtVideo,
+    '烦躁': fidgetyVideo,
+    '疲惫': tiredVideo,
+    '失落': hurtVideo,
+    '委屈': wrongedVideo,
+    '悲伤': sadVideo,
+    '愤怒': indignationVideo,
+    '忧虑': worriedVideo,
+    '心疼': concernVideo,
 }
 
 
@@ -107,7 +119,7 @@ const Image = ({ emotion }: { emotion?: string }) => {
     }, [size])
 
     return (
-       isOpen ? <main
+        isOpen ? <main
             ref={containerRef}
             className={styles.wapper}
             style={{
@@ -135,12 +147,12 @@ const Image = ({ emotion }: { emotion?: string }) => {
             </div>
             <i className='iconfont icon-cocos-cancel' onClick={() => setIsOpen(false)} />
         </main> : <img
-           className={styles.imageMark}
+            className={styles.imageMark}
             src={imageMark}
             alt={'ai形象'}
             onClick={() => setIsOpen(true)}
         />
-       )
+    )
 }
 
 export default memo(Image)

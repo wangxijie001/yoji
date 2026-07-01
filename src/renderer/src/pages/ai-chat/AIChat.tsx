@@ -1,5 +1,5 @@
 import styles from "./AIChat.module.css";
-import { Button, Drawer, message, Modal } from "antd";
+import { Button, Drawer, message, Modal, Spin } from "antd";
 import { useEffect, useRef, useState } from "react";
 import FormatChat from "../../components/format-chat/index";
 import TextArea from "antd/es/input/TextArea";
@@ -8,6 +8,7 @@ import ttsApi from "../../api/tts";
 import { ChatMessage, MessageHistoryQuery } from "@shared/types";
 import InfiniteScroll from 'react-infinite-scroller'
 import dayjs from 'dayjs'
+import proactiveChat from "./proactive-chat";
 
 
 
@@ -20,17 +21,31 @@ type MessageItem = {
     created_at?: number
 
 };
-type SendMessageEvent = { event?: React.KeyboardEvent<HTMLTextAreaElement>; interruptType?: ChatMessage['interruptDecision']; interruptMessage?: string }
+type SendMessageEvent = {
+    event?: React.KeyboardEvent<HTMLTextAreaElement>;
+    interruptType?: ChatMessage['interruptDecision'];
+    interruptMessage?: string;
+    assistantMessage?: string;// 系统提示ai助手的消息
+}
+
+type TaskResult = {
+    taskId: string
+    description: string
+    result: string
+}
+
 const AiChat = () => {
     const [inputMessage, setInputMessage] = useState("");
     const [messageList, setMessageList] = useState<MessageItem[]>([]);
     const scrollRef = useRef<HTMLDivElement>(null);
     const curExecLogScrollRef = useRef<HTMLDivElement>(null);
-    const streamRef = useRef({ message: "", illation: '', isFinish: false }); //缓存当前回复消息
+    const streamRef = useRef({ message: "", illation: '', isFinish: true }); //缓存当前回复消息
     const timerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
+    const unreadNotificationsRef = useRef<{ timer: ReturnType<typeof setTimeout> | null, message: string[] }>({ timer: null, message: [] })
     const currentAiIdRef = useRef<string>(''); // 当前正在流式输出的 AI 消息 ID
     const [hasMoreHistory, setHasMoreHistory] = useState(true)
     const [ttsEnabled, setTtsEnabled] = useState(true)
+    const [isProactiveChatEnabled, setIsProactiveChatEnabled] = useState(false)
     const [interruptInfo, setInterruptInfo] = useState<{ open: boolean, info?: string; message?: string }>({ open: false })
     const [isShowCurExecLogDrawer, setIsShowCurExecLogDrawer] = useState<boolean>(false)
     const [curExecLog, setCurExecLog] = useState<{ isLoading: boolean, log: string }>({ isLoading: false, log: '' })
@@ -55,7 +70,20 @@ const AiChat = () => {
             }
         })
 
-        return () => { unsubTts(); unsubRebuild() }
+        //监听异步后台任务完成通知
+        const unsubBackgroundTaskCompleted = window.api.agent.onBackgroundTaskCompleted(({ result }) => {
+            onProactiveNotice(result)
+        })
+ 
+        // 启动主动聊天定时器,并获取当前系统是否允许主动聊天
+        proactiveChat.initProactiveConfig(sendMessage, setIsProactiveChatEnabled)
+
+        return () => {
+            unsubTts();
+            unsubRebuild();
+            unsubBackgroundTaskCompleted();
+            proactiveChat.stopTimer()
+        }
     }, []);
 
     const scrollToBottom = () => {
@@ -67,6 +95,7 @@ const AiChat = () => {
             behavior: "instant",
             block: "end",
         });
+
 
     };
 
@@ -92,7 +121,7 @@ const AiChat = () => {
     const openCurExecLog = () => {
         const { isFinish, illation } = streamRef.current
         setIsShowCurExecLogDrawer(!isShowCurExecLogDrawer)
-        setCurExecLog({ isLoading: !isFinish, log: isFinish ? '' : illation })
+        setCurExecLog({ isLoading: !isFinish, log: illation })
     }
 
     // 加载更多消息
@@ -105,9 +134,15 @@ const AiChat = () => {
     }
 
 
-    const sendMessage = async ({ event, interruptType, interruptMessage }: SendMessageEvent) => {
-        const userMsg = inputMessage || interruptMessage;
+    const sendMessage = async ({ event, interruptType, interruptMessage, assistantMessage }: SendMessageEvent) => {
+
+        const userMsg = inputMessage || interruptMessage || assistantMessage || '';
         if (event?.shiftKey || !userMsg) return;
+
+        if (!streamRef.current.isFinish) {
+            message.warning('我还在处理任务呢，等一会吧')
+            return
+        }
         setInputMessage("");
 
         const userMessage: MessageItem = {
@@ -130,7 +165,7 @@ const AiChat = () => {
         if (timerRef.current) {
             clearInterval(timerRef.current);
         }
-        streamRef.current = { message: "", illation: '', isFinish: false };
+        streamRef.current = { message: "", illation: `对话时间：${new Date().toLocaleString()}\n\n`, isFinish: false };
 
         // 定时器：从 streamRef 读取增量并渲染
         timerRef.current = setInterval(() => {
@@ -150,12 +185,21 @@ const AiChat = () => {
             scrollToBottom()
         }, 200);
 
-        setMessageList((prev) => [...prev, userMessage, aiMessage]);
+        let chatMessageList: ChatMessage[] = []
+
+        if (assistantMessage) {
+            setMessageList((prev) => [...prev, aiMessage]);
+            chatMessageList = [{ role: "assistant", content: userMsg }]
+        } else {
+            setMessageList((prev) => [...prev, userMessage, aiMessage]);
+            chatMessageList = [{ role: "user", interruptDecision: interruptType, content: userMsg }]
+        }
+
         scrollToBottom()
         // setMessageList((prev) => [...prev, aiMessage]);
         // 流式请求：只负责往 streamRef 喂数据
         agentApi.chatStream(
-            [{ role: "user", interruptDecision: interruptType, content: userMsg }],
+            chatMessageList,
             {
                 onChunk: (_content) => {
                     const { type, content } = _content;
@@ -175,7 +219,10 @@ const AiChat = () => {
                 },
             },
         );
-
+        // 重置主动聊天定时器
+        if (!assistantMessage) {
+            proactiveChat.resetTimer()
+        }
     };
 
     const onMessageInput = (str: string) => {
@@ -192,6 +239,38 @@ const AiChat = () => {
         }
         setInterruptInfo({ open: false, info: '', message: '' })
         sendMessage({ interruptType: type, interruptMessage: `【${_messageStart[type]}】${interruptInfo.message}` })
+    }
+    //切换ai主动聊天状态
+    const changeProactiveChatEnabled = (enabled: boolean) => {
+        setIsProactiveChatEnabled(enabled)
+        if (enabled) {
+            proactiveChat.resetTimer(true)
+        } else {
+            proactiveChat.stopTimer(true)
+        }
+    }
+
+    //主进程需要ai助手处理的消息
+    const onProactiveNotice = (taskResult: string) => {
+        unreadNotificationsRef.current.message.push(taskResult)
+        if (unreadNotificationsRef.current.timer) {
+            clearTimeout(unreadNotificationsRef.current.timer)
+            unreadNotificationsRef.current.timer = null
+        }
+
+        unreadNotificationsRef.current.timer = setTimeout(() => {
+            if (streamRef.current.isFinish) {
+                const aiMessage = `我是你的异步任务代理助手：当前收到了异步任务执行完成的消息，
+                消息列表：${JSON.stringify(unreadNotificationsRef.current.message)},
+                请使用 “get_async_task_result” 工具获取任务结果
+                `
+                sendMessage({ assistantMessage: aiMessage })
+                if (unreadNotificationsRef.current.timer) {
+                    clearTimeout(unreadNotificationsRef.current.timer)
+                    unreadNotificationsRef.current.timer = null
+                }
+            }
+        }, 1000)
     }
 
     // 判断是否展示时间分隔。最新消息与当前时间比较，其余消息与下一条比较，间隔 >10 分钟才展示
@@ -261,6 +340,12 @@ const AiChat = () => {
                 <div className={styles.operate}>
                     <div>
                         <i
+                            className="iconfont icon-cocos-ailiaotian"
+                            style={{ fontSize: 22, color: isProactiveChatEnabled ? 'var(--default-link-text-color)' : '#999', cursor: 'pointer' }}
+                            onClick={() => changeProactiveChatEnabled(!isProactiveChatEnabled)}
+                            title={isProactiveChatEnabled ? '主动聊天已开启' : '主动聊天已停止'}
+                        />
+                        <i
                             className="iconfont icon-cocos-a-shujujianguan1"
                             style={{ fontSize: 20, color: isShowCurExecLogDrawer ? 'var(--default-link-text-color)' : '#999', cursor: 'pointer' }}
                             onClick={() => openCurExecLog()}
@@ -314,7 +399,7 @@ const AiChat = () => {
                 placement='right'
                 onClose={() => setIsShowCurExecLogDrawer(false)}
                 open={isShowCurExecLogDrawer}
-                title={'当前执行日志'}
+                title={'执行日志'}
                 mask={false}
                 style={{ background: 'var(--default-drawer-bg)' }}
                 styles={{ header: { padding: ' 8px 16px', border: 'none' }, body: { padding: ' 0 10px 0 20px' } }}
@@ -322,15 +407,11 @@ const AiChat = () => {
             >
                 <div className={`${styles.paramsDsc} thin-scrollbar`}>
                     <div>
-                        <FormatChat message={curExecLog.log || '当前暂无任何任务正在执行'} fontSize="12px" />
+                        <FormatChat message={curExecLog.log} fontSize="12px" />
+                        {curExecLog.isLoading && (
+                            <Spin />
+                        )}
                     </div>
-                    {curExecLog.isLoading && (
-                        <span className={styles.dotWapper}>
-                            <span className={styles.dot} />
-                            <span className={styles.dot} />
-                            <span className={styles.dot} />
-                        </span>
-                    )}
                     <div ref={curExecLogScrollRef} />
                 </div>
 

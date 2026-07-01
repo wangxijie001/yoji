@@ -46,6 +46,12 @@ const agent = {
   stop(): void {
     window.api.agent.stop()
   },
+
+  /** 更新 Agent 配置版本，触发 Agent 重建 */
+  async updateVersion(): Promise<void> {
+    const res = await window.api.agent.updateVersion()
+    if (!res.ok) throw new Error(res.error)
+  },
 }
 
 export default agent 

@@ -8,8 +8,4 @@ export const mcp = {
       data?: { name: string; description: string }[]
       error?: string
     }>,
-
-  /** 更新 MCP 库版本号，触发 agent 重建 */
-  updateMcpStoreVersion: () =>
-    ipcRenderer.invoke('mcp:updateMcpStoreVersion') as Promise<{ ok: boolean; error?: string }>,
 }

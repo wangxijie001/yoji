@@ -29,3 +29,5 @@ function createConfig(configName: ConfigName) {
 export const envConfig = createConfig('env')
 export const modelConfig = createConfig('model')
 export const mcpConfig = createConfig('mcp')
+export const childrenAgentConfig = createConfig('childrenAgent')
+

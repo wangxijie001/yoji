@@ -5,6 +5,7 @@ import { searchMemories, fetchRawMessages, queryMessageDatabase } from './search
 import { searchEmotionLog } from './search-emotion-log'
 import { internetSearch } from './internet-search'
 import { uninstallMcpServer, listMcpServers, installMcpServer } from "./mcp-manage";
+import { pushAsyncTask, getAsyncTaskAgent, getAsyncTaskResult } from '../children-agent/async/tools'
 
 export const queryCurrentTime = tool(
     async ({}:{}) => {
@@ -28,5 +29,8 @@ export const toolList = [ queryCurrentTime,
     searchEmotionLog, internetSearch ,
     listMcpServers,
     installMcpServer,
-    uninstallMcpServer
+    uninstallMcpServer,
+    pushAsyncTask,
+    getAsyncTaskAgent,
+    getAsyncTaskResult,
 ];

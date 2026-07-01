@@ -8,6 +8,8 @@ import { generateAndStoreSnapshot, insertMessageHistory } from './utils/chat-his
 import { changeEmotion, getCurrentEmotionInfo } from './emotion'
 import { tts } from './utils/tts'
 import { createAgent } from './create-agent'
+import { envConfig } from '../config'
+
 
 // 固定线程 ID——整个应用只有这一条持续对话
 const THREAD_ID = 'companion'
@@ -48,12 +50,12 @@ export async function chatStream(
       case 'system':
         _message = new SystemMessage({ content: m.content })
         break
-      case 'assistant':
-        _message = new AIMessage({ content: m.content })
+      case 'assistant'://此处表示ai主动发起对话
+        _message = new HumanMessage({ content: m.content })
         break
       default:
         _message = new HumanMessage({ content: `用户消息：${m.content}` })
-        userMessage += m.content
+        userMessage = m.content
         interruptDecision = m.interruptDecision
         break
     }
@@ -90,16 +92,21 @@ export async function chatStream(
 
   try {
     // 记录用户消息
-    insertMessageHistory({
-      session_id: 'main',
-      role: 'user',
-      content: userMessage
-    })
-    const emotion = getCurrentEmotionInfo() 
-    if (emotion){
-      const _systemMessage = new HumanMessage({ content: `我是你的情绪提示，你当前的情绪：${emotion}` })
+    if (userMessage) {
+      insertMessageHistory({
+        session_id: 'main',
+        role: 'user',
+        content: userMessage
+      })
+    }
+
+    const emotion = getCurrentEmotionInfo()
+    if (emotion) {
+      const _systemMessage = new HumanMessage({
+        content: `我是你的情绪提示，你当前的情绪：${emotion}`
+      })
       langchainMessages.unshift(_systemMessage)
-    }    
+    }
 
     const streamInput: any = interruptCommand || { messages: langchainMessages }
     const streamConfig: any = {
@@ -107,7 +114,7 @@ export async function chatStream(
       streamMode: ['messages', 'updates'],
       subgraphs: true,
       version: 'v2',
-      signal,
+      signal
     }
 
     const stream: any = await agent.stream(streamInput, streamConfig)
@@ -148,21 +155,25 @@ export async function chatStream(
             // 当工具执行完成后，这里会有 ToolMessage
             if (msg.type === 'tool') {
               let results = []
-              let data = { content: '查询到了一些信息，我来分析一下', type: 'toolReturn' }
+              let data = {
+                content: `·\n\n${msg.name}：${msg.name === 'push_async_task' ? `已发起异步任务调度，等待结果...` : msg.content || ''}`,
+                type: 'toolReturn'
+              }
 
               if (msg.name === 'internet_search') {
                 try {
                   results = JSON.parse(msg.content).results
+                  if (Array.isArray(results)) {
+                    const resLength = results.length
+                    const urlList = results.map((item: { url: any }) => item.url).join('\n\n')
+                    data = {
+                      content: `\n\n${msg.name}：查询到${resLength}个结果 \n\n${urlList}`,
+                      type: 'toolReturn'
+                    }
+                  }
                 } catch (error) {}
-
-                const resLength = results.length
-                const urlList = results.map((item: { url: any }) => item.url).join('\n\n')
-                data = {
-                  content: `\n\n查询到${resLength}个结果 \n\n${urlList}`,
-                  type: 'toolReturn'
-                }
-                callbacks.onChunk(data)
               }
+              callbacks.onChunk(data)
             }
           }
         }
@@ -174,7 +185,7 @@ export async function chatStream(
             if (msg.tool_calls?.length) {
               for (const tc of msg.tool_calls) {
                 const data = {
-                  content: `\n\n调用${tc.name}, 参数：${tc.args?.query || JSON.stringify(tc.args)}`,
+                  content: `\n\n调用${tc.name}, 参数：${JSON.stringify(tc.args)}\n\n`,
                   type: 'toolparams'
                 }
                 callbacks.onChunk(data)
@@ -230,12 +241,19 @@ export async function chatStream(
       changeEmotion([
         { role: 'user', content: userMessage },
         { role: 'assistant', content: totalMessages }
-      ])
+      ]).finally(() => {
+        // 更新最新用户消息(情绪系统获取的是上次用户消息，所以必须情绪工具执行完后再更新最新用户消息)
+        if (userMessage) {
+          envConfig.set('latestUserMessage', { createdAt: Date.now(), content: userMessage })
+        }
+      })
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') {
       callbacks.onDone()
       return
     }
     callbacks.onError(err instanceof Error ? err.message : '流式调用失败')
+    console.error(err)
+    return
   }
 }

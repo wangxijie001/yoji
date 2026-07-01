@@ -10,6 +10,9 @@ export const agent = {
   /** Agent 核心重建状态通知 */
   onRebuilding: createListener<{ status: 'start' | 'done' }>('agent:rebuilding'),
 
+  /** 异步后台任务完成通知 */
+  onBackgroundTaskCompleted: createListener<{ taskId: string; result: string }>('background:task:completed'),
+
   // 流式聊天
   chatStream: (
     messages: ChatMessage[],
@@ -38,4 +41,8 @@ export const agent = {
 
   /** 停止当前流式对话 */
   stop: () => ipcRenderer.send('agent:stop'),
+
+  /** 更新 Agent 配置版本，触发 Agent 重建 */
+  updateVersion: () =>
+    ipcRenderer.invoke('agent:updateVersion') as Promise<{ ok: boolean; error?: string }>,
 }

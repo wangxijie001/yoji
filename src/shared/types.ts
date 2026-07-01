@@ -6,9 +6,16 @@
  */
 
 //声明文件 类型
-export type ConfigName = 'env' | 'model' | 'mcp'
+export type ConfigName = 'env' | 'model' | 'mcp' | 'childrenAgent'
+// 环境配置文件类型
+export type EnvConfig = { 
+   activeProvider: ModelProvider,//当前激活的模型提供者
+   agentVersion: string,//MCP store存储版本号
+   latestUserMessage: {createdAt: number, content: string},//最新用户消息内容
+   isProactiveChatEnabled: boolean,//是否开启主动聊天
+}
 //支持的模型种类
-export type ModelProvider = 'qwen' | 'deepseek'
+export type ModelProvider = 'openai' | 'deepseek'
 //model 配置文件类型
 export type ModelConfig = { apiKey: string; model: string ; baseURL: string }
 //mcp 配置文件类型
@@ -22,7 +29,21 @@ export type McpConfig = {
          transport: "http" | "sse" | undefined,
          url: string,
   }
-  tools?: { name: string; description: string }[]
+  tools?: { name: string; description: string }[],
+  version: string // 版本号,每次修改后需要更新
+}
+//childrenAgent 配置文件类型
+export type ChildAgentConfig = {
+  name: string
+  uuid: string
+  isAsync: boolean // 是否异步智能体
+  isSystem: boolean // 是否系统智能体
+  version: string// 版本号,每次修改后需要更新
+  description: string // 描述信息
+  systemPrompt: string // agent 系统提示词
+  mcpList:{key?:string,uuid:string,name?:string,description?:string}[] // MCP 服务器 uuid列表
+  isEnabled: boolean // 是否开启
+  createdAt?: number // 创建时间
 }
 
 // 聊天消息

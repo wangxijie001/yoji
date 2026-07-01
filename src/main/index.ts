@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow } from 'electron'
+import { app, shell, BrowserWindow, nativeImage } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { autoUpdater } from 'electron-updater'
@@ -6,6 +6,11 @@ import icon from '../../resources/icon.png?asset'
 import { registerAll } from './ipc'
 
 function createWindow(): void {
+  // macOS dock 图标（dev 模式下 Electron 默认 .app 不包含自定义图标）
+  if (process.platform === 'darwin' && app.dock) {
+    app.dock.setIcon(icon)
+  }
+
   // 创建浏览器窗口
   const mainWindow = new BrowserWindow({
     width: 900,
@@ -13,7 +18,7 @@ function createWindow(): void {
     show: false,
     autoHideMenuBar: true,
     titleBarStyle: 'hidden',
-    ...(process.platform === 'linux' ? { icon } : {}),
+    ...(process.platform !== 'darwin' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false
@@ -27,6 +32,14 @@ function createWindow(): void {
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
+  })
+
+  // 拦截普通 <a href> 链接，用系统浏览器打开而非覆盖当前窗口
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (url.startsWith('http')) {
+      event.preventDefault()
+      shell.openExternal(url)
+    }
   })
 
   // electron-vite 热更新：开发环境加载远程 URL，生产环境加载本地文件

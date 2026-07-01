@@ -4,7 +4,7 @@ import fileApi from '@renderer/api/file'
 import { useEffect, useRef, useState } from 'react'
 import type { FileEntry } from '@shared/types'
 import { CaretRightOutlined, FileTextFilled, FileUnknownFilled, FolderOpenFilled } from '@ant-design/icons'
-import { formatTime } from '@renderer/utils/tool'
+import { formatFileSize, formatTime } from '@renderer/utils/tool'
 // import { FilePreview } from '@renderer/components'
 
 const { confirm } = Modal;
@@ -134,7 +134,7 @@ const ParamShow = () => {
                             </div>
                             <div className={styles.fileInfo}>
                                 <div>{fileData?.fileName}</div>
-                                <div>{fileData?.fileName.split('.').pop()} - {fileData?.size} 字节</div>
+                                <div>{fileData?.fileName.split('.').pop()} - {formatFileSize(fileData?.size)}</div>
                                 <div className={styles.infoHeader}>
                                     <span>信息</span>
                                     <span><Button title="打开文件所在目录" type='text' className={'iconfont icon-cocos-resource-list'} size="small" onClick={() => fileData?.fullPath && fileApi.showFileInFolder(fileData.fullPath)}></Button></span>

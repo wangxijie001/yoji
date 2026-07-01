@@ -1,9 +1,19 @@
 import { ipcMain } from 'electron'
+import { v4 as uuidv4 } from 'uuid'
 import { chat, chatStream } from '../agent'
 import type { ModelConfig } from '../agent/model'
 import { getConfig } from '../config'
 import { queryMessagesHistory } from '../agent/utils/chat-history'
 import type { ModelConfig as StoredModelConfig, ModelProvider, MessageHistoryQuery } from '../../shared/types'
+
+// agentVersion：所有需要 Agent 重建的配置变动（MCP / 子Agent / 模型）统一走此版本号
+export const updateAgentVersion = () => {
+  getConfig('env').set('agentVersion', uuidv4())
+}
+
+export const getAgentVersion = (): string => {
+  return (getConfig('env').get('agentVersion') as string) || ''
+}
 
 function resolveModelConfig() {
   const activeProvider = getConfig('env').get('activeProvider') as ModelProvider
@@ -15,7 +25,7 @@ function resolveModelConfig() {
       apiKey: stored.apiKey,
       provider: activeProvider,
       model: stored.model,
-      baseURL: stored.baseURL,
+      baseURL: stored.baseURL || (stored as any).baseUrl || '',
     } as ModelConfig,
   }
 }
@@ -23,6 +33,16 @@ function resolveModelConfig() {
 // Agent 对话——用户输入 + 配置 → Agent 返回结果
 export function register(): void {
   let currentAbortController: AbortController | null = null
+
+  // 更新 Agent 版本，触发重建
+  ipcMain.handle('agent:updateVersion', async () => {
+    try {
+      updateAgentVersion()
+      return { ok: true }
+    } catch (err) {
+      return { ok: false, error: (err as Error).message }
+    }
+  })
 
   // 查询聊天历史
   ipcMain.handle('history:query', async (_, query: MessageHistoryQuery) => {

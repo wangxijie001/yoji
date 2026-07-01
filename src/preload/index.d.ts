@@ -27,7 +27,9 @@ interface Api {
     historyQuery: (query: MessageHistoryQuery) => Promise<ApiResponse<MessageRecord[]>>
     chatStream: (messages: ChatMessage[], callbacks: StreamCallbacks) => void
     onRebuilding: (callback: (data: { status: 'start' | 'done' }) => void) => () => void
+    onBackgroundTaskCompleted: (callback: (data: { taskId: string; result: string }) => void) => () => void
     stop: () => void
+    updateVersion: () => Promise<ApiResponse<void>>
   }
   emotion: {
     getLog: (limit: number, id?: number) => Promise<ApiResponse<EmotionState[]>>
@@ -49,7 +51,6 @@ interface Api {
   }
   mcp: {
     testConnection: (transport: string, url: string) => Promise<ApiResponse<{ name: string; description: string }[]>>
-    updateMcpStoreVersion: () => Promise<ApiResponse<void>>
   }
 }
 

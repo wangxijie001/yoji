@@ -40,12 +40,13 @@ export function createModel(config: ModelConfig): ChatOpenAI | ChatDeepSeek {
       return m
     }
 
-    case 'qwen':
-    default: {
+    case 'openai':
+      {
       const m = new ChatOpenAI({
         apiKey,
         model,
         temperature,
+        timeout: 300000, // 5 分钟超时，千问 API 推理较慢需更长等待
         // callbacks: [tokenLogger],  // 诊断开启
         ...(baseURL ? { configuration: { baseURL } } : {}),
       })
@@ -57,5 +58,7 @@ export function createModel(config: ModelConfig): ChatOpenAI | ChatDeepSeek {
       })
       return m
     }
+    default:
+      throw new Error(`不支持的模型供应商: ${provider}`)
   }
 }

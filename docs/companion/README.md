@@ -6,4 +6,7 @@
 |---|---|---|
 | [emotion.md](emotion.md) | 激素情绪系统完整设计 | ✅ 已设计 |
 | [memory.md](memory.md) | 树状记忆系统完整设计 | ✅ 已设计 |
+| [proactive-chat.md](proactive-chat.md) | 主动聊天系统设计 | ✅ 已实现 |
+| [child-agent.md](child-agent.md) | 子 Agent 系统总览：同步/异步 Agent、工坊、agentVersion | ✅ 已实现 |
+| [async-child-agent.md](async-child-agent.md) | 异步子 Agent 调度系统详细设计 | ✅ 已实现 |
 | personality.md | 性格基线与人格设定 | 📋 规划中 |

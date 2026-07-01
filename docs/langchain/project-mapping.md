@@ -8,13 +8,19 @@
 src/main/agent/
 ├── index.ts                  ← createDeepAgent(...) 入口
 │   ├── model: 动态注入用户 apiKey
-│   ├── systemPrompt: 电子伴侣人设
+│   ├── systemPrompt: 电子伴侣人设 + 子 Agent 列表
 │   ├── backend: FilesystemBackend → userData/companion/ (virtualMode)
 │   ├── memory: AGENTS.md → 用户画像 + 主题记录
+│   ├── subagents: 同步 Agent（工坊配置 + MCP 工具分发）
 │   └── checkpointer: SqliteSaver → companion.db
 │
 ├── model.ts                  ← createModel()
-├── system-prompt.ts          ← buildSystemPrompt()
+├── system-prompt.ts          ← buildSystemPrompt() 动态注入子 Agent 描述
+├── create-agent.ts           ← agentVersion 缓存 + 重建入口
+├── children-agent/
+│   ├── sync/index.ts         ← createSyncSubAgents() MCP 统一连接 + 工具分发
+│   ├── agent-list.ts         ← Agent 配置读写
+│   └── async/                ← 异步调度系统
 ├── middleware/
 │   └── summarization.ts      ← 摘要中间件（暂未启用，框架内置）
 ├── tools/
@@ -26,7 +32,8 @@ src/main/agent/
     └── embedding.ts          ← 本地向量化 (all-MiniLM-L6-v2)
 
 src/main/ipc/
-└── agent.ts                  ← ipcMain.handle('agent:chat') / stream
+├── agent.ts                  ← ipcMain.handle('agent:chat' / 'agent:updateVersion') + getAgentVersion
+└── mcp.ts                    ← mcp:testConnection
 
 src/preload/api/
 └── agent.ts                  ← contextBridge 暴露的通信通道
@@ -51,8 +58,9 @@ src/renderer/src/api/
 | **记忆搜索** | `search_memories` (语义/时间) + `fetch_raw_messages` (原文) | ✅ 已实现 |
 | `streaming` | IPC 逐 chunk 推送 + `agent:done` | ✅ 已实现 |
 | `tools` | `query_current_time` + `search_memories` + `fetch_raw_messages` | ✅ 已实现 |
-| `subagents` | 复杂任务的专项代理 | 📋 规划中 |
+| **`subagents`** | 同步 Agent 工坊创建 + MCP 工具分发；异步 Agent 后台调度 | ✅ 已实现 |
 | `skills` | 伴侣行为模板，按需加载。详见 [deepagents-skills.md](deepagents-skills.md) | 📋 规划中 |
+| **`agentVersion`** | 统一版本号，MCP/模型/工坊变更自动触发 Agent 重建 | ✅ 已实现 |
 
 ## 已实现：完整记忆闭环
 

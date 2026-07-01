@@ -105,6 +105,7 @@ export function insertMessageHistory(msg: {
   }
 
   db.close()
+
   return Number(result.lastInsertRowid)
 }
 
