@@ -1,0 +1,16 @@
+allowBuilds:
+  better-sqlite3: true
+  electron: true
+  electron-winstaller: true
+  esbuild: true
+  protobufjs: true
+  sharp: true
+
+onlyBuiltDependencies:
+  - electron
+  - esbuild
+  - better-sqlite3
+  - sharp
+
+patchedDependencies:
+  "@langchain/langgraph-sdk": patches/@langchain__langgraph-sdk.patch

@@ -1,6 +1,6 @@
 import styles from './McpManage.module.css'
 import mcpLogo from '../../assets/image/mcp-logo.png'
-import { Drawer, Input, message, Switch, Tag } from 'antd'
+import { Drawer, Input, message, Select, Switch, Tag } from 'antd'
 import { useEffect, useState } from 'react'
 import { McpConfig } from '@shared/types'
 import { v4 as uuidv4 } from 'uuid'
@@ -29,8 +29,11 @@ const McpManage = () => {
                 config: {
                     transport: 'sse',
                     url: 'https://xxxxxxx.com/mcp',
+                    command: 'npx',
+                    args: [],
                 },
                 isEnabled: false,
+                isExposeToMain: false,
                 isAddModel: true,
                 isEdit: true,
                 uuid: "new_mcp_model",
@@ -44,7 +47,7 @@ const McpManage = () => {
 
     // 编辑配置
     const changeConfig = (index: number, field: string, value: any) => {
-        if (field === 'transport' || field === 'url') {
+        if (['transport', 'url', 'command', 'args'].includes(field)) {
             mcpList[index].config[field] = value
         } else {
             mcpList[index][field] = value
@@ -52,32 +55,50 @@ const McpManage = () => {
         setMcpList([...mcpList])
     }
 
-    // 切换启用状态
-    const switchProvider = async (index: number) => {
-
-        const currentMcp = await mcpConfig.get(mcpList[index].uuid) as McpConfig
-        if (!currentMcp) {
-            return
-        }
-        currentMcp.isEnabled = !currentMcp.isEnabled
-        mcpList[index].isEnabled = currentMcp.isEnabled
+    // 切换布尔开关（isEnabled / isExposeToMain 等）
+    const switchBoolean = async (index: number, field: 'isEnabled' | 'isExposeToMain') => {
+        const current = await mcpConfig.get(mcpList[index].uuid) as McpConfig
+        if (!current) return
+        current[field] = !current[field]
+        mcpList[index][field] = current[field]
         setMcpList([...mcpList])
-        mcpConfig.set(currentMcp.uuid, currentMcp)
-        message.success(currentMcp.isEnabled ? '已启用' : '已禁用')
-        await agentApi.updateVersion()
+        mcpConfig.set(current.uuid, current)
+        agentApi.updateVersion()
     }
 
     // 保存配置
     const saveConfig = async (index: number) => {
         const isAdd = mcpList[index].uuid === "new_mcp_model"
         const uuid = isAdd ? uuidv4() : mcpList[index].uuid
-        const { key, name, description, config, isEnabled } = mcpList[index]
-        if (!key || !name || !description || !config.transport || !config.url) {
+        const { key, name, description, config, isEnabled, isExposeToMain } = mcpList[index]
+        
+        if (!key || !name || !description || !config.transport) {
             message.error('请填写全部参数')
             return
         }
+        
+        if (config.transport === 'stdio') {
+            if (!config.command || !config.args?.length) {
+                message.error('NPX 模式下请填写 command 和 args（包名）')
+                return
+            }
+        } else {
+            if (!config.url) {
+                message.error('请填写 URL')
+                return
+            }
+        }
+        // 按 transport 类型组装纯净 config
+        const transport = config.transport || 'sse'
+        const cleanConfig: McpConfig['config'] = transport === 'stdio'
+            ? { transport, command: config.command || 'npx', args: config.args || [] }
+            : { transport, url: config.url || '' }
+        const testArg = transport === 'stdio'
+            ? (cleanConfig.command || 'npx') + ' ' + (cleanConfig.args || []).join(' ')
+            : (cleanConfig.url || '')
+
         // 测试连接
-        const tools = await mcpApi.testConnection(config.transport, config.url).catch(() => null)
+        const tools = await mcpApi.testConnection(transport, testArg).catch(() => null)
         if (!tools) return
         message.success(`连接成功，发现 ${tools.length} 个工具, 配置已保存`)
         const version = uuidv4()
@@ -86,8 +107,9 @@ const McpManage = () => {
             uuid,
             name,
             description,
-            config,
+            config: cleanConfig,
             isEnabled,
+            isExposeToMain: isExposeToMain || false,
             tools,
             version
         })
@@ -170,24 +192,57 @@ const McpManage = () => {
                         </div>
                         <div className={styles.listItem}>
                             <span>transport</span>
-                            <span title={mcp.config.transport}>
+                            <span>
                                 {mcp.isEdit ?
-                                    <Input
-                                        value={mcp.config.transport}
-                                        onChange={(e) => changeConfig(index, 'transport', e.target.value)}
+                                    <Select
+                                        value={mcp.config.transport || 'sse'}
+                                        onChange={(v) => changeConfig(index, 'transport', v)}
+                                        style={{ width: '100%' }}
+                                        options={[
+                                            { value: 'sse', label: 'SSE (Server-Sent Events)' },
+                                            { value: 'http', label: 'HTTP (Streamable)' },
+                                            { value: 'stdio', label: 'NPX (本地进程)' }
+                                        ]}
                                     /> : mcp.config.transport}
                             </span>
                         </div>
-                        <div className={styles.listItem}>
-                            <span>url</span>
-                            <span title={mcp.config.url}>
-                                {mcp.isEdit ?
-                                    <Input
-                                        value={mcp.config.url}
-                                        onChange={(e) => changeConfig(index, 'url', e.target.value)}
-                                    /> : mcp.config.url}
-                            </span>
-                        </div>
+                        {mcp.config.transport === 'stdio' ? (
+                            <>
+                                <div className={styles.listItem}>
+                                    <span>command</span>
+                                    <span>
+                                        {mcp.isEdit ?
+                                            <Input
+                                                value={mcp.config.command || 'npx'}
+                                                placeholder="npx"
+                                                onChange={(e) => changeConfig(index, 'command', e.target.value)}
+                                            /> : (mcp.config.command || 'npx')}
+                                    </span>
+                                </div>
+                                <div className={styles.listItem}>
+                                    <span>args</span>
+                                    <span>
+                                        {mcp.isEdit ?
+                                            <Input
+                                                value={(mcp.config.args || []).join(' ')}
+                                                placeholder="@scope/mcp-pkg@latest"
+                                                onChange={(e) => changeConfig(index, 'args', e.target.value.split(/\s+/).filter(Boolean))}
+                                            /> : (mcp.config.args || []).join(' ')}
+                                    </span>
+                                </div>
+                            </>
+                        ) : (
+                            <div className={styles.listItem}>
+                                <span>url</span>
+                                <span title={mcp.config.url}>
+                                    {mcp.isEdit ?
+                                        <Input
+                                            value={mcp.config.url}
+                                            onChange={(e) => changeConfig(index, 'url', e.target.value)}
+                                        /> : mcp.config.url}
+                                </span>
+                            </div>
+                        )}
                         <div className={styles.listItem}>
                             <span>简介</span>
                             <span title={mcp.description}>
@@ -199,9 +254,15 @@ const McpManage = () => {
                             </span>
                         </div>
                         {!mcp.isEdit && <div className={styles.listItem}>
+                            <span>主Agent启用</span>
+                            <span>
+                                <Switch size="small" checked={mcp.isExposeToMain} onChange={() => switchBoolean(index, 'isExposeToMain')} />
+                            </span>
+                        </div>}
+                        {!mcp.isEdit && <div className={styles.listItem}>
                             <span>启用</span>
                             <span>
-                                <Switch checked={mcp.isEnabled} onChange={() => switchProvider(index)} />
+                                <Switch size="small" checked={mcp.isEnabled} onChange={() => switchBoolean(index, 'isEnabled')} />
                             </span>
                         </div>}
                     </div>

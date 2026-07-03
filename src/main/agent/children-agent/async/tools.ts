@@ -1,8 +1,9 @@
 import { tool } from 'langchain'
 import { z } from 'zod'
 import { getAllAgentDesc } from '../agent-list'
-import { pushOneTask, queryTaskResult } from './index'
+import { cancelTask, pushOneTask, queryTaskResult } from './index'
 
+//推送异步任务
 export const pushAsyncTask = tool(
   async ({ params, agentId }: { params: string; agentId: string }) => {
     const result = pushOneTask({ params, agentId })
@@ -18,6 +19,20 @@ export const pushAsyncTask = tool(
   }
 )
 
+//取消异步任务
+export const cancelAsyncTask = tool(
+  async ({ taskId }: { taskId: string }) => {
+    return cancelTask(taskId)
+  },
+  {
+    name: 'abort_async_task',
+    description: '取消一个正在执行或排队中的异步任务。传入任务 taskId，排队中的直接移除，执行中的发起中止信号。',
+    schema: z.object({
+      taskId: z.string().describe('异步任务的 taskId')
+    })
+  }
+)
+
 //获取当前可用的异步子代理列表
 export const getAsyncTaskAgent = tool(
   async ({}) => {
@@ -25,7 +40,7 @@ export const getAsyncTaskAgent = tool(
   },
   {
     name: 'get_async_task_agent',
-    description: '获取异步任务代理列表，用于查询当前已注册的异步子代理列表',
+    description: '获取异步任务代理(异步agent)列表，用于查询当前已注册的异步子代理列表',
     schema: z.object({})
   }
 )

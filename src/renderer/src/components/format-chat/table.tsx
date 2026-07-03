@@ -9,7 +9,7 @@ interface TdProps {
 }
 
 const styles: Record<string, CSSProperties> = {
-    paragraph: { margin: "6px 0", fontSize: "15px", lineHeight: "26px" },
+    paragraph: { margin: "6px 0", fontSize: "14px", lineHeight: "26px" },
     list: { margin: "6px 0" },
     table: { borderCollapse: "collapse", width: "100%", margin: "10px 0"},
     th: { border: "1px solid #ddd", padding: "8px", textAlign: "left", background: "#f9f9f9" },

@@ -22,6 +22,18 @@
     z-index: 100;
 
   }
+  .miniWindow{
+    position: absolute;
+    top: 2px;
+    right: 6px;
+    cursor: pointer;
+    font-size: 20px;
+    z-index: 100;
+    cursor: pointer;
+    &:hover {
+      color: var(--default-hover-text-color);
+    }
+  }
 
   .background {
     position: absolute;
@@ -59,7 +71,7 @@
 
   .right {
     flex: 1;
-    max-width: calc(100% - 200px);
+    /* max-width: calc(100% - 200px); */
     position: relative;
      
      .dragArea {

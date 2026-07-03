@@ -19,15 +19,18 @@ export type ModelProvider = 'openai' | 'deepseek'
 //model 配置文件类型
 export type ModelConfig = { apiKey: string; model: string ; baseURL: string }
 //mcp 配置文件类型
-export type McpConfig = { 
+export type McpConfig = {
   key: string
   name: string
   description: string
   isEnabled: boolean
+  isExposeToMain: boolean // 是否将工具注入主 Agent
   uuid: string
-  config:{
-         transport: "http" | "sse" | undefined,
-         url: string,
+  config: {
+    transport: 'http' | 'sse' | 'stdio' | undefined
+    url?: string                     // http/sse 用
+    command?: string                 // stdio 用，默认 npx
+    args?: string[]                  // stdio 用，如 ['@scope/mcp-pkg@latest']
   }
   tools?: { name: string; description: string }[],
   version: string // 版本号,每次修改后需要更新

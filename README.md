@@ -142,17 +142,24 @@ src/
 
 ## 🚀 快速开始
 
+> 要求 **pnpm 11**，`npm i -g pnpm@11`
+
 ```bash
-# 安装
+git clone https://github.com/wangxijie001/yoji.git
+cd yoji
+git submodule update --init   # 下载本地向量模型
 pnpm install
-
-# 开发（热重载）
 pnpm dev
+```
 
-# 构建
-pnpm build:mac     # macOS
-pnpm build:win     # Windows
-pnpm build:linux   # Linux
+electron / 模型下载慢？`.npmrc` 已配国内镜像。
+
+### 构建
+
+```bash
+pnpm build:mac
+pnpm build:win
+pnpm build:linux
 ```
 
 ### 配置模型
@@ -196,9 +203,9 @@ pnpm build:linux   # Linux
 - ✓ AI 主动聊天（定时触发 + 情绪联动）
 - ✓ 长任务异步调度（子 Agent 非阻塞 + 并发控制）
 - ✓ 工坊自定义 Agent（角色设定 + 工具集组装 + 同步/异步模式）
-- 多会话并行管理
-- MCP 市场（一键安装社区共享的工具集）
-- 自定义 Skill 编辑器
+- 协作办公(目前已可以根据需要自主集成，后续会提供一些默认集成功能)
+
+
 
 ---
 

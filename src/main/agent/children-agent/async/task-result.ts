@@ -79,7 +79,7 @@ export function deleteTaskResult(taskId: string): void {
 }
 
 // 清理过期任务（默认 7 天）
-export function cleanupExpiredTasks(ttlMs: number = 7 * 24 * 60 * 60 * 1000): number {
+export function cleanupExpiredTasks(ttlMs: number = 3 * 24 * 60 * 60 * 1000): number {
   const db = new Database(DB_PATH)
   const expireBefore = Date.now() - ttlMs
   const result = db.prepare('DELETE FROM task_results WHERE created_at < ?').run(expireBefore)

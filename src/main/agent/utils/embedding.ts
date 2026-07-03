@@ -7,8 +7,9 @@ const MODEL_BASE = app.isPackaged
   ? join(process.resourcesPath!, 'models')
   : join(__dirname, '..', '..', 'models')
 
-env.allowRemoteModels = false
+env.allowRemoteModels = true            // 首次启动自动下载，后续本地缓存
 env.allowLocalModels = true
+env.remoteHost = 'https://hf-mirror.com' // 国内镜像加速
 env.localModelPath = MODEL_BASE
 
 let _extractor: any = null

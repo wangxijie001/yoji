@@ -10,7 +10,7 @@
         margin-right: 20px;
         margin-bottom: 20px;
         width: 400px;
-        height: 296px;
+        height: 306px;
         background-color: var(--default-hover-bg);
         border-radius: 10px;
         padding: 20px;
@@ -46,11 +46,11 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             >span{
                 &:first-child{
                     display: inline-block;
-                    font-size: 14px;
+                    font-size: 13px;
                     font-weight: 700;
                     width: 80px;
                 }
@@ -59,6 +59,13 @@
                     overflow: hidden;
                     text-overflow: ellipsis;
                     white-space: nowrap;
+                    font-size: 13px;
+                    input,textarea{
+                        font-size: 13px;
+                    }
+                    button{
+                        margin-left: 20px;
+                    }
                 }
             }
 

@@ -30,6 +30,9 @@ interface Api {
     onBackgroundTaskCompleted: (callback: (data: { taskId: string; result: string }) => void) => () => void
     stop: () => void
     updateVersion: () => Promise<ApiResponse<void>>
+    toggleMiniWindow: () => Promise<boolean>
+    queryTaskQueue: () => Promise<ApiResponse<{ taskQueue: unknown[]; runningTaskQueue: unknown[] }>>
+    cancelTask: (taskId: string) => Promise<ApiResponse<string>>
   }
   emotion: {
     getLog: (limit: number, id?: number) => Promise<ApiResponse<EmotionState[]>>

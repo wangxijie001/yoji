@@ -2,6 +2,8 @@ import { ipcRenderer } from 'electron'
 import type { ChatMessage, MessageHistoryQuery, MessageRecord, StreamCallbacks, StreamChunk } from '../../shared/types'
 import { createListener } from './listener'
 
+type ApiResponse<T = unknown> = { ok: boolean; data?: T; error?: string }
+
 // Agent 对话通道
 export const agent = {
   chat: (messages: ChatMessage[]) => ipcRenderer.invoke('agent:chat', messages),
@@ -45,4 +47,16 @@ export const agent = {
   /** 更新 Agent 配置版本，触发 Agent 重建 */
   updateVersion: () =>
     ipcRenderer.invoke('agent:updateVersion') as Promise<{ ok: boolean; error?: string }>,
+
+  /** 切换迷你窗口模式 */
+  toggleMiniWindow: () =>
+    ipcRenderer.invoke('window:toggleMini') as Promise<boolean>,
+
+  /** 查询异步任务队列 */
+  queryTaskQueue: () =>
+    ipcRenderer.invoke('task:queryQueue') as Promise<ApiResponse<{ taskQueue: unknown[]; runningTaskQueue: unknown[] }>>,
+
+  /** 取消异步任务 */
+  cancelTask: (taskId: string) =>
+    ipcRenderer.invoke('task:cancel', taskId) as Promise<ApiResponse<string>>,
 }

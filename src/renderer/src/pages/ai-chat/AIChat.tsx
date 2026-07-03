@@ -1,6 +1,7 @@
 import styles from "./AIChat.module.css";
 import { Button, Drawer, message, Modal, Spin } from "antd";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, } from "react";
+import { useOutletContext } from "react-router-dom";
 import FormatChat from "../../components/format-chat/index";
 import TextArea from "antd/es/input/TextArea";
 import agentApi from "../../api/agent";
@@ -9,6 +10,7 @@ import { ChatMessage, MessageHistoryQuery } from "@shared/types";
 import InfiniteScroll from 'react-infinite-scroller'
 import dayjs from 'dayjs'
 import proactiveChat from "./proactive-chat";
+import { MiniWindowType } from "../home/Home";
 
 
 
@@ -28,27 +30,24 @@ type SendMessageEvent = {
     assistantMessage?: string;// 系统提示ai助手的消息
 }
 
-type TaskResult = {
-    taskId: string
-    description: string
-    result: string
-}
-
 const AiChat = () => {
+    const { miniWindow } = useOutletContext<{ miniWindow: MiniWindowType }>()
     const [inputMessage, setInputMessage] = useState("");
     const [messageList, setMessageList] = useState<MessageItem[]>([]);
     const scrollRef = useRef<HTMLDivElement>(null);
     const curExecLogScrollRef = useRef<HTMLDivElement>(null);
     const streamRef = useRef({ message: "", illation: '', isFinish: true }); //缓存当前回复消息
     const timerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
-    const unreadNotificationsRef = useRef<{ timer: ReturnType<typeof setTimeout> | null, message: string[] }>({ timer: null, message: [] })
+    const unreadNotificationsRef = useRef<{ timer: ReturnType<typeof setTimeout> | null, message: string[] }>({ timer: null, message: [] })//异步任务执行通知延时器
     const currentAiIdRef = useRef<string>(''); // 当前正在流式输出的 AI 消息 ID
     const [hasMoreHistory, setHasMoreHistory] = useState(true)
     const [ttsEnabled, setTtsEnabled] = useState(true)
     const [isProactiveChatEnabled, setIsProactiveChatEnabled] = useState(false)
     const [interruptInfo, setInterruptInfo] = useState<{ open: boolean, info?: string; message?: string }>({ open: false })
+
     const [isShowCurExecLogDrawer, setIsShowCurExecLogDrawer] = useState<boolean>(false)
     const [curExecLog, setCurExecLog] = useState<{ isLoading: boolean, log: string }>({ isLoading: false, log: '' })
+    const [asyncTaskQueue, setAsyncTaskQueue] = useState<any[]>([])
 
 
     useEffect(() => {
@@ -73,6 +72,8 @@ const AiChat = () => {
         //监听异步后台任务完成通知
         const unsubBackgroundTaskCompleted = window.api.agent.onBackgroundTaskCompleted(({ result }) => {
             onProactiveNotice(result)
+            // 异步任务队列更新
+            isShowCurExecLogDrawer && queryAsyncTaskQueue()
         })
  
         // 启动主动聊天定时器,并获取当前系统是否允许主动聊天
@@ -118,10 +119,28 @@ const AiChat = () => {
         });
     };
 
-    const openCurExecLog = () => {
+    const changeOpenCurExecLog = () => {
         const { isFinish, illation } = streamRef.current
         setIsShowCurExecLogDrawer(!isShowCurExecLogDrawer)
-        setCurExecLog({ isLoading: !isFinish, log: illation })
+        setCurExecLog({ isLoading: !isFinish,log: illation })
+        queryAsyncTaskQueue()
+    }
+
+    // 获取异步任务队列
+    const queryAsyncTaskQueue = () => {
+        agentApi.queryTaskQueue().then((res) => {
+            const { taskQueue, runningTaskQueue } = res || {}
+            const _taskQueue = taskQueue.map(item => ({...item,status:'waiting',statusDesc:'等待中'}))
+            const _runningTaskQueue = runningTaskQueue.map(item => ({...item,status:'running','statusDesc':'运行中'}))
+            setAsyncTaskQueue([..._taskQueue || [], ..._runningTaskQueue || []])
+        })
+    }
+
+    //取消异步任务
+    const cancelAsyncTask = (index: number) => {
+        agentApi.cancelTask(asyncTaskQueue[index].taskId).then(() => {
+            queryAsyncTaskQueue()
+        })
     }
 
     // 加载更多消息
@@ -309,9 +328,9 @@ const AiChat = () => {
                                 className={item.role === "user" ? styles.userMessage : styles.aiMessage}
                             >
                                 {item.role === "user" ? (
-                                    <div className={styles.messageBubble}><FormatChat message={item.content} /></div>
+                                    <div className={styles.messageBubble}><FormatChat fontSize={`${miniWindow.chatFontSize || 14}px`} message={item.content} /></div>
                                 ) : (
-                                    <FormatChat message={item.content} illation={item.illation} />
+                                    <FormatChat message={item.content} fontSize={`${miniWindow.chatFontSize || 14}px`} illation={item.illation} />
                                 )}
                                 {(item.loading && (index === messageList.length - 1)) && (
                                     <span className={styles.dotWapper}>
@@ -348,7 +367,7 @@ const AiChat = () => {
                         <i
                             className="iconfont icon-cocos-a-shujujianguan1"
                             style={{ fontSize: 20, color: isShowCurExecLogDrawer ? 'var(--default-link-text-color)' : '#999', cursor: 'pointer' }}
-                            onClick={() => openCurExecLog()}
+                            onClick={() => changeOpenCurExecLog()}
                             title={'当前运行状态'}
                         />
                         <i
@@ -397,7 +416,7 @@ const AiChat = () => {
             <Drawer
                 size='50%'
                 placement='right'
-                onClose={() => setIsShowCurExecLogDrawer(false)}
+                onClose={() => changeOpenCurExecLog()}
                 open={isShowCurExecLogDrawer}
                 title={'执行日志'}
                 mask={false}
@@ -406,6 +425,25 @@ const AiChat = () => {
 
             >
                 <div className={`${styles.paramsDsc} thin-scrollbar`}>
+                    <div className={styles.taskQueue}>
+                        {asyncTaskQueue.map((item, index) => (
+                            <div key={item.taskId} className={styles.taskItem}>
+                                <span>
+                                    <div style={{fontWeight: 'bold'}}>{item.taskId}</div>
+                                    <div>{(item.params|| '').length > 90 ? item.params.substring(0, 90) + '...' : item.params}</div>
+                                    <div style={{ color: item.status === 'running' ? 'var(--default-running-text-color)' : '#999' }}>{item.statusDesc}</div>
+                                </span>
+                                <span>
+                                    <i 
+                                      className="iconfont icon-cocos-zhongzhi" 
+                                      style={{ fontSize: 20 }} 
+                                      title="取消任务"
+                                      onClick={() => cancelAsyncTask(index)}
+                                      />
+                                </span>
+                            </div>
+                        ))}
+                    </div>
                     <div>
                         <FormatChat message={curExecLog.log} fontSize="12px" />
                         {curExecLog.isLoading && (

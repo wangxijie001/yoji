@@ -50,7 +50,7 @@ createAgent()
 
 ## 异步 Agent（`src/main/agent/async-children-agent/`）
 
-独立于主 Agent graph 的调度系统：
+独立于主 Agent graph 的调度系统，支持任务取消：
 
 ```
 主 Agent push_async_task({ agentId, params })
@@ -58,9 +58,22 @@ createAgent()
 
 eventLoop（100ms 轮询）
   → MAX_RUNNING = 5
-  → executor → getAgent(agentId) → invoke()
+  → executor → getAgent(agentId) → invoke({ signal })
   → 结果存 DB → broadcast('background:task:completed')
 ```
+
+### 任务取消
+
+`Task` 携带可选 `AbortController`，执行前赋值，通过 `AbortSignal` 中断 `agent.invoke()` 中正在进行的 LLM 网络请求：
+
+```
+cancelTask(taskId)
+  → 排队中 → taskQueue.splice() 直接移除
+  → 执行中 → task.abortController.abort() → invoke() 抛出 AbortError
+  → 清理 checkpoint + 释放 Agent 槽位 + 通知 UI
+```
+
+暴露工具 `abort_async_task` 供主 Agent 调用，UI 通过 `task:queryQueue` / `task:cancel` IPC 展示任务列表和取消按钮。
 
 详见 [async-child-agent.md](async-child-agent.md)。
 

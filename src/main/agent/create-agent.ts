@@ -9,7 +9,7 @@ import {
   initChatHistory,
 } from './utils/chat-history'
 import { initEmotionTable } from './emotion/schema'
-import { toolList } from './tools'
+import { getFullToolList } from './tools'
 import { initSkills } from './skills'
 import { initTaskResultTable } from './children-agent/async/task-result'
 import { toolErrorHandler } from './middleware/tool-error-handler'
@@ -67,7 +67,7 @@ export async function createAgent(config: ModelConfig): Promise<DeepAgent> {
   _agent = createDeepAgent({
     model,
     systemPrompt,
-    tools: toolList,
+    tools: await getFullToolList(),
     subagents: syncSubAgents,
     // LocalShellBackend: 文件操作锁在 companion 目录内 + execute 执行系统命令
     backend: new LocalShellBackend({

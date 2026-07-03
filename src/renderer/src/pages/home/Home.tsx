@@ -4,12 +4,16 @@ import Menu from './components/menu/Menu'
 import Image from './components/image/Image'
 import { useState, useEffect, useTransition } from 'react'
 import emotionApi from '@renderer/api/emotion'
-
+export type MiniWindowType = {
+  isEnabled: boolean,
+  chatFontSize: number
+}
 const Home = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const [emotionDisplay, setEmotionDisplay] = useState<{ c1: string; c2: string; display: { primary: string; secondary: string } }>({ c1: 'transparent', c2: 'transparent',display:{primary:'',secondary:''} })
+  const [emotionDisplay, setEmotionDisplay] = useState<{ c1: string; c2: string; display: { primary: string; secondary: string } }>({ c1: 'transparent', c2: 'transparent', display: { primary: '', secondary: '' } })
   const [, startTransition] = useTransition()
+  const [miniWindow, setMiniWindow] = useState<MiniWindowType>({ isEnabled: false, chatFontSize: 14 })
   const emotionColor = new Map<string, string>([
     ['开心', '#fff3b0'],
     ['兴奋', '#ffccc7'],
@@ -35,7 +39,7 @@ const Home = () => {
     const c2 = emotionColor.get(display.secondary)
     if (!c1) return
     startTransition(() => {
-      setEmotionDisplay({ c1, c2: c2 || '#ffffff',display })
+      setEmotionDisplay({ c1, c2: c2 || '#ffffff', display })
 
 
     })
@@ -58,6 +62,11 @@ const Home = () => {
     })
   }
 
+  // 固定窗口
+  const changeMiniWindow = async () => {
+    const enabled = await window.api.agent.toggleMiniWindow()
+    setMiniWindow({ isEnabled: enabled, chatFontSize: enabled ? 12 : 14 })
+  }
 
   useEffect(() => {
     changeBackgroundByEmotion()
@@ -78,17 +87,17 @@ const Home = () => {
   return (
     <main className={styles.wapper} >
       <div className={styles.content}>
-        <div className={styles.left}>
+        {!miniWindow.isEnabled && <div className={styles.left}>
           <i
             className="iconfont icon-cocos-back"
             onClick={() => navigate(-1)}
           />
           <Menu />
-        </div>
+        </div>}
         <div className={styles.right}>
           <div className={styles.dragArea}></div>
           <div>
-            <Outlet />
+            <Outlet context={{ miniWindow }} />
           </div>
         </div>
       </div>
@@ -97,7 +106,17 @@ const Home = () => {
         '--c2': emotionDisplay.c2,
       } as React.CSSProperties} />
       <i className={styles.description + ' ' + "iconfont icon-cocos-wenhao-xianxingyuankuang"} title={emotionDisplay.display.primary + ' ' + emotionDisplay.display.secondary} />
-      {location.pathname === '/' && <Image emotion={emotionDisplay.display.primary} />}
+      {location.pathname === '/' && !miniWindow.isEnabled &&
+        <Image emotion={emotionDisplay.display.primary} />}
+      {location.pathname === '/' &&
+        <i
+          className={`${styles.miniWindow} iconfont icon-cocos-pushpin-2-line`}
+          style={{
+            color: miniWindow.isEnabled ? 'var(--default-hover-text-color)' : '',
+          }}
+          onClick={() => changeMiniWindow()}
+          title={miniWindow.isEnabled ? '已固定' : '解除固定'}
+        />}
     </main>
   )
 }

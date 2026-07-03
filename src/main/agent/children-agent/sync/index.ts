@@ -3,8 +3,8 @@ import { childrenAgentConfig, mcpConfig } from '../../../config'
 import type { ChildAgentConfig, McpConfig } from '../../../../shared/types'
 import { MultiServerMCPClient } from '@langchain/mcp-adapters'
 import { toolErrorHandler } from '../../middleware/tool-error-handler'
+import mcpUtil, { McpServerConfig } from '../../mcp'
 
-type McpServerConfig = Record<string, { transport: 'sse' | 'http'; url: string }>
 
 let mcpClient: MultiServerMCPClient | null = null
 
@@ -30,10 +30,10 @@ export async function createSyncSubAgents(): Promise<SubAgent[]> {
     const allMcp = (mcpConfig.getAll() || {}) as Record<string, McpConfig>
     for (const mcp of Object.values(allMcp)) {
       if (mcpKeySet.has(mcp.key) && mcp.isEnabled) {
-        mcpServerConfigs[mcp.key] = {
-          transport: mcp.config.transport as 'sse' | 'http',
-          url: mcp.config.url
-        }
+        const t = mcp.config.transport || 'sse'
+        mcpServerConfigs[mcp.key] = t === 'stdio'
+          ? { transport: 'stdio' as const, command: mcp.config.command || 'npx', args: mcp.config.args || [] }
+          : { transport: t as 'sse' | 'http', url: mcp.config.url || '' }
       }
     }
   }
@@ -67,11 +67,7 @@ async function connectAndGetTools(config: McpServerConfig): Promise<any[]> {
   }
 
   try {
-    mcpClient = new MultiServerMCPClient({
-      mcpServers: config,
-      prefixToolNameWithServerName: true,
-      additionalToolNamePrefix: ''
-    })
+    mcpClient = mcpUtil.createMcpClient(config)
 
     let timeoutId: ReturnType<typeof setTimeout>
     const tools = (await Promise.race([

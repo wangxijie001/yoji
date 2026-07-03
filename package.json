@@ -1,6 +1,10 @@
 {
   "name": "yoji",
   "version": "1.2.0",
+  "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "pnpm": ">=11"
+  },
   "description": "An Electron application with React and TypeScript",
   "main": "./out/main/index.js",
   "author": "example.com",
@@ -35,9 +39,12 @@
     "antd": "^6.4.3",
     "axios": "^1.17.0",
     "better-sqlite3": "^12.10.0",
+    "dayjs": "^1.11",
     "deepagents": "^1.10.5",
     "echarts": "^6.1.0",
     "electron-updater": "^6.3.9",
+    "langchain": "^1.0",
+    "mime": "^2.6",
     "p-queue": "^9.1.0",
     "p-retry": "^7.1.1",
     "prism-themes": "^1.9.0",
@@ -46,8 +53,10 @@
     "react-router-dom": "^7.17.0",
     "rehype-prism-plus": "^2.0.2",
     "remark-gfm": "^4.0.1",
+    "sharp": "^0.33",
     "sqlite-vec": "^0.1.9",
-    "uuid": "^14.0.1"
+    "uuid": "^14.0.1",
+    "zod": "^4.0"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",
@@ -58,7 +67,7 @@
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
-    "electron": "^39.2.6",
+    "electron": "^39.8.10",
     "electron-builder": "^26.0.12",
     "electron-vite": "^5.0.0",
     "eslint": "^9.39.1",
@@ -70,16 +79,5 @@
     "react-dom": "^19.2.1",
     "typescript": "^5.9.3",
     "vite": "^7.2.6"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "electron",
-      "esbuild",
-      "better-sqlite3",
-      "sharp"
-    ],
-    "patchedDependencies": {
-      "@langchain/langgraph-sdk": "patches/@langchain__langgraph-sdk.patch"
-    }
   }
 }

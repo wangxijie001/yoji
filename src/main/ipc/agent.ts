@@ -4,6 +4,7 @@ import { chat, chatStream } from '../agent'
 import type { ModelConfig } from '../agent/model'
 import { getConfig } from '../config'
 import { queryMessagesHistory } from '../agent/utils/chat-history'
+import { cancelTask, queryTaskQueue } from '../agent/children-agent/async'
 import type { ModelConfig as StoredModelConfig, ModelProvider, MessageHistoryQuery } from '../../shared/types'
 
 // agentVersion：所有需要 Agent 重建的配置变动（MCP / 子Agent / 模型）统一走此版本号
@@ -101,5 +102,23 @@ export function register(): void {
         event.sender.send('agent:stream:error', { error })
       },
     }, abortController.signal)
+  })
+
+  //查询异步任务队列
+  ipcMain.handle('task:queryQueue', async () => {
+    try {
+      return { ok: true, data: queryTaskQueue() }
+    } catch (err) {
+      return { ok: false, error: (err as Error).message }
+    }
+  })
+
+  //手动取消异步任务
+  ipcMain.handle('task:cancel', async (_, taskId: string) => {
+    try {
+      return { ok: true, data: cancelTask(taskId) }
+    } catch (err) {
+      return { ok: false, error: (err as Error).message }
+    }
   })
 }

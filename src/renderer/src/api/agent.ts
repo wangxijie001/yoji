@@ -52,6 +52,24 @@ const agent = {
     const res = await window.api.agent.updateVersion()
     if (!res.ok) throw new Error(res.error)
   },
+
+
+  /** 切换迷你窗口模式 */
+  toggleMiniWindow: () => window.api.agent.toggleMiniWindow(),
+
+  /** 查询异步任务队列 */
+  async queryTaskQueue() {
+    const res = await window.api.agent.queryTaskQueue()
+    if (!res.ok) return { taskQueue: [] as any[], runningTaskQueue: [] as any[] }
+    return res.data!
+  },
+
+  /** 取消异步任务 */
+  async cancelTask(taskId: string) {
+    const res = await window.api.agent.cancelTask(taskId)
+    if (!res.ok) throw new Error(res.error)
+    return res.data!
+  },
 }
 
 export default agent 

@@ -1,8 +1,8 @@
 @font-face {
   font-family: "iconfont"; /* Project id 3158929 */
-  src: url('iconfont.woff2?t=1782578294150') format('woff2'),
-       url('iconfont.woff?t=1782578294150') format('woff'),
-       url('iconfont.ttf?t=1782578294150') format('truetype');
+  src: url('iconfont.woff2?t=1783066238618') format('woff2'),
+       url('iconfont.woff?t=1783066238618') format('woff'),
+       url('iconfont.ttf?t=1783066238618') format('truetype');
 }
 
 .iconfont {
@@ -11,6 +11,14 @@
   font-style: normal;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-cocos-pushpin-2-line:before {
+  content: "\e866";
+}
+
+.icon-cocos-tuding:before {
+  content: "\e652";
 }
 
 .icon-cocos-zhongzhi:before {

@@ -1,9 +1,11 @@
-import { app, shell, BrowserWindow, nativeImage } from 'electron'
+import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { autoUpdater } from 'electron-updater'
 import icon from '../../resources/icon.png?asset'
 import { registerAll } from './ipc'
+
+let mainWindow: BrowserWindow | null = null
 
 function createWindow(): void {
   // macOS dock 图标（dev 模式下 Electron 默认 .app 不包含自定义图标）
@@ -12,7 +14,7 @@ function createWindow(): void {
   }
 
   // 创建浏览器窗口
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
     show: false,
@@ -26,7 +28,7 @@ function createWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
+    mainWindow!.show()
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -65,6 +67,22 @@ app.whenReady().then(() => {
 
   // 注册所有 IPC 处理器
   registerAll()
+
+  // 迷你窗口模式切换
+  let isMini = false
+  ipcMain.handle('window:toggleMini', async () => {
+    if (!mainWindow) return false
+    isMini = !isMini
+    if (isMini) {
+      mainWindow.setSize(436, 600)
+      mainWindow.setAlwaysOnTop(true)
+    } else {
+      mainWindow.setSize(900, 670)
+      mainWindow.setAlwaysOnTop(false)
+    }
+    return isMini
+  })
+
   createWindow()
 
   // 自动更新检查（生产环境生效，开发环境跳过）

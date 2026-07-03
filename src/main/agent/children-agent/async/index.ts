@@ -16,9 +16,8 @@ type Task = {
   taskId: string // 任务ID
   params: string // 任务参数
   agentId: string // 任务所属智能体ID
+  abortController?: AbortController // 取消信号，入队时不赋值，执行前创建
 }
-
-
 
 let eventLoopRunning: ReturnType<typeof setInterval> | null = null
 const MAX_RUNNING_TASKS = 5
@@ -42,42 +41,6 @@ const cacheAgentMap = new Map<
   }
 >()
 
-// 推送任务到队列
-export const pushOneTask = (task: {
-  params: string
-  agentId: string
-}): { taskId: string; description: string } => {
-  const { params, agentId } = task || {}
-  if (!params || !agentId) {
-    return {
-      taskId: '',
-      description:
-        '[error,任务参数错误] 请填写完整任务参数: params-任务参数, agentId-任务所属智能体ID'
-    }
-  }
-  if (!agentList.isAgentExist(agentId)) {
-    return {
-      taskId: '',
-      description: `[error,任务参数错误] 任务所属智能体${agentId}不存在或未启用,当前可用智能体:${agentList.getAllAgentDesc()},请检查任务参数是否正确`
-    }
-  }
-
-  const _taskUuid = uuidv4()
-
-  taskQueue.push({
-    taskId: _taskUuid,
-    params,
-    agentId
-  })
-
-  // 触发事件循环，处理任务
-  eventLoop()
-
-  return {
-    taskId: _taskUuid,
-    description: `[success,任务已添加到队列] 当前任务(taskId:${_taskUuid})`
-  }
-}
 
 // 获取智能体,如果不存在则创建
 const getChildAgent = async (agentId: string) => {
@@ -150,15 +113,15 @@ const getAgentStatus = (agentId: string) => {
   return cacheAgent?.status || 'free'
 }
 
-//删除缓存智能体
-const deleteCacheAgent = async (agentId: string) => {
-  const cacheAgent = cacheAgentMap.get(agentId)
-  if (!cacheAgent) {
-    return
-  }
-  await cacheAgent.mcpClient.close()
-  cacheAgentMap.delete(agentId)
-}
+// //删除缓存智能体
+// const deleteCacheAgent = async (agentId: string) => {
+//   const cacheAgent = cacheAgentMap.get(agentId)
+//   if (!cacheAgent) {
+//     return
+//   }
+//   await cacheAgent.mcpClient.close()
+//   cacheAgentMap.delete(agentId)
+// }
 
 //更新智能体状态
 const updateAgentStatus = (agentId: string, status: 'free' | 'running' | 'failed') => {
@@ -213,16 +176,22 @@ const eventLoop = () => {
 
 //执行器
 const executor = async (task: Task) => {
+  // 创建取消信号
+  task.abortController = new AbortController()
+
   try {
-    const { taskId, params, agentId } = task
+    const { taskId, params, agentId, abortController } = task
     const agent = await getChildAgent(agentId)
 
     updateAgentStatus(agentId, 'running')
     const threadId = uuidv4()
+
     const result = await agent.invoke(
       { messages: [new HumanMessage(params)] },
-      { configurable: { thread_id: threadId } }
+      { configurable: { thread_id: threadId }, signal: abortController.signal }
     )
+    
+    runningTaskQueue.delete(taskId)
     taskResultQueue.push({
       taskId,
       description: params,
@@ -235,17 +204,91 @@ const executor = async (task: Task) => {
     // 子 Agent 用完即清空 checkpoint
     deleteThreadCheckpoints(threadId)
     updateAgentStatus(agentId, 'free')
-    runningTaskQueue.delete(taskId)
   } catch (err) {
-    const errMsg = err instanceof Error ? err.message : String(err)
-    updateAgentStatus(task.agentId, 'failed')
-    runningTaskQueue.delete(task.taskId)
-    taskResultQueue.push({
-      taskId: task.taskId,
-      description: task.params,
-      result: `[error:任务执行失败]，错误信息：${errMsg} (taskId:${task.taskId})`
-    })
-    insertTaskResult({taskId: task.taskId, description: task.params,isNotified: false, result: `[error:任务执行失败]${errMsg}`,createdAt: Date.now()})
+    if (err instanceof Error && err.name === 'AbortError') {
+      deleteThreadCheckpoints(task.taskId)
+      updateAgentStatus(task.agentId, 'free')
+      runningTaskQueue.delete(task.taskId)
+      taskResultQueue.push({
+        taskId: task.taskId,
+        description: task.params,
+        result: `[info:任务已取消]，任务已被用户取消 (taskId:${task.taskId})`
+      })
+    } else {
+      const errMsg = err instanceof Error ? err.message : String(err)
+      updateAgentStatus(task.agentId, 'failed')
+      runningTaskQueue.delete(task.taskId)
+      taskResultQueue.push({
+        taskId: task.taskId,
+        description: task.params,
+        result: `[error:任务执行失败]，错误信息：${errMsg} (taskId:${task.taskId})`
+      })
+      insertTaskResult({taskId: task.taskId, description: task.params,isNotified: false, result: `[error:任务执行失败]${errMsg}`,createdAt: Date.now()})
+    }
+  }
+}
+
+// 推送任务到队列
+export const pushOneTask = (task: {
+  params: string
+  agentId: string
+}): { taskId: string; description: string } => {
+  const { params, agentId } = task || {}
+  if (!params || !agentId) {
+    return {
+      taskId: '',
+      description:
+        '[error,任务参数错误] 请填写完整任务参数: params-任务参数, agentId-任务所属智能体ID'
+    }
+  }
+  if (!agentList.isAgentExist(agentId)) {
+    return {
+      taskId: '',
+      description: `[error,任务参数错误] 任务所属智能体${agentId}不存在或未启用,当前可用智能体:${agentList.getAllAgentDesc()},请检查任务参数是否正确`
+    }
+  }
+
+  const _taskUuid = uuidv4()
+
+  taskQueue.push({
+    taskId: _taskUuid,
+    params,
+    agentId
+  })
+
+  // 触发事件循环，处理任务
+  eventLoop()
+
+  return {
+    taskId: _taskUuid,
+    description: `[success,任务已添加到队列] 当前任务(taskId:${_taskUuid})`
+  }
+}
+
+//取消异步任务
+export const cancelTask = (taskId: string): string => {
+  // 先检查排队中的任务
+  const queueIdx = taskQueue.findIndex(t => t.taskId === taskId)
+  if (queueIdx >= 0) {
+    taskQueue.splice(queueIdx, 1)
+    return `[success] 任务已取消 (taskId:${taskId})`
+  }
+
+  // 再检查执行中的任务
+  const runningTask = runningTaskQueue.get(taskId)
+  if (runningTask?.abortController) {
+    runningTask.abortController.abort()
+    return `[success] 任务已发起取消，正在中止 (taskId:${taskId})`
+  }
+
+  return `[error] 未找到指定任务 (taskId:${taskId})，可能已完成或不存在`
+}
+
+//查询任务队列
+export const queryTaskQueue = () => {
+  return {
+    taskQueue,
+    runningTaskQueue: Array.from(runningTaskQueue.values()),
   }
 }
 
@@ -258,7 +301,7 @@ export const queryTaskResult = (taskId: string) => {
     const isTaskRuning = runningTaskQueue.has(taskId)
     return {
       taskId,
-      description: isTaskRuning ? '任务正在执行中,请稍后查询结果,任务完成时会自动通知您' : '任务结果不存在：可能原因：1. 任务taskId不存在,请检查查询的 taskId 是否正确 2. 任务结果已被过期清理 默认仅保存最近7天的任务结果'
+      description: isTaskRuning ? '任务正在执行中,请稍后查询结果,任务完成时会自动通知您' : '任务结果不存在：可能原因：1. 任务taskId不存在,请检查查询的 taskId 是否正确 2. 任务结果已被过期清理 默认仅保存最近3天的任务结果'
     }
   }
 
@@ -270,3 +313,4 @@ export const queryTaskResult = (taskId: string) => {
     result: res?.result || ''
   }
 }
+

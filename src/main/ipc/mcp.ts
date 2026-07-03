@@ -2,13 +2,24 @@ import { ipcMain } from 'electron'
 import { MultiServerMCPClient } from '@langchain/mcp-adapters'
 
 export function register(): void {
-  ipcMain.handle('mcp:testConnection', async (_, transport: string, url: string) => {
-    const client = new MultiServerMCPClient({
-      _test: {
-        transport: transport as 'sse' | 'http',
-        url,
-      },
-    })
+  ipcMain.handle('mcp:testConnection', async (_, transport: string, connectStr: string) => {
+    let serverConfig: any
+
+    if (transport === 'stdio') {
+      const parts = connectStr.split(/\s+/).filter(Boolean)
+      serverConfig = {
+        transport: 'stdio',
+        command: parts[0] || 'npx',
+        args: parts.slice(1)
+      }
+    } else {
+      serverConfig = {
+        transport: transport,
+        url: connectStr
+      }
+    }
+
+    const client = new MultiServerMCPClient({ _test: serverConfig })
     try {
       let timeoutId: ReturnType<typeof setTimeout>
       const tools = await Promise.race([
