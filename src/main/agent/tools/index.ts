@@ -43,10 +43,7 @@ async function getMainMcpTools(): Promise<any[]> {
 
   const serverConfigs: Record<string, any> = {}
   for (const mcp of exposed) {
-    const t = mcp.config.transport || 'sse'
-    serverConfigs[mcp.key] = t === 'stdio'
-      ? { transport: 'stdio', command: mcp.config.command || 'npx', args: mcp.config.args || [] }
-      : { transport: t, url: mcp.config.url || '' }
+    serverConfigs[mcp.key] = mcp.config
   }
 
   mainMcpClient = mcpUtil.createMcpClient(serverConfigs)

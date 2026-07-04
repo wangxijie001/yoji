@@ -43,5 +43,4 @@ export function initSkills(): void {
   // 全量覆盖：清空目标目录 → 从源目录拷贝
   cpSync(sourceDir, SKILLS_BUILTIN_DIR, { recursive: true, force: true })
 
-  console.log(`[Skills] 已从 ${sourceDir} 注入到 ${SKILLS_BUILTIN_DIR}`)
 }

@@ -1,9 +1,8 @@
 import { tool } from 'langchain'
 import { z } from 'zod'
-import { v4 as uuidv4 } from 'uuid'
-import { MultiServerMCPClient } from '@langchain/mcp-adapters'
 import { mcpConfig } from '../../config'
 import { updateAgentVersion } from '../../ipc/agent'
+import mcpUtil from '../mcp'
 
 /**
  * 卸载 MCP 服务器工具
@@ -87,7 +86,8 @@ export const installMcpServer = tool(
     transport,
     url,
     command,
-    args,
+    args: argsStr,
+    envPath,
     uuid: existingUuid
   }: {
     name: string
@@ -96,61 +96,32 @@ export const installMcpServer = tool(
     transport: string
     url?: string
     command?: string
-    args?: string[]
+    args?: string
+    envPath?: string
     uuid?: string
   }) => {
-    // 构建服务端配置
-    const isStdio = transport === 'stdio'
-    let serverConfig: any
-
-    if (isStdio) {
-      serverConfig = {
-        transport: 'stdio' as const,
-        command: command || 'npx',
-        args: args || []
-      }
-    } else {
-      serverConfig = {
-        transport: transport as 'sse' | 'http',
-        url: url || ''
-      }
-    }
-
-    // 先测试连接
-    const client = new MultiServerMCPClient({ _test: serverConfig })
+    const args = argsStr ? argsStr.split(/\s+/).filter(Boolean) : undefined
     try {
-      let timeoutId: ReturnType<typeof setTimeout>
-      const tools = await Promise.race([
-        client.getTools(),
-        new Promise<never>((_, reject) => {
-          timeoutId = setTimeout(() => reject(new Error('连接超时(15s)')), 15000)
-        })
-      ]).finally(() => clearTimeout(timeoutId!))
-
-      // 连接成功，保存配置
-      const uuid = existingUuid || uuidv4()
-      mcpConfig.set(uuid, {
+      const result = await mcpUtil.saveMcpConfig({
         key,
-        uuid,
+        uuid: existingUuid,
         name,
         description,
-        config: isStdio
-          ? { transport: 'stdio', command: command || 'npx', args: args || [] }
-          : { transport, url: url || '' },
-        isEnabled: true,
-        isExposeToMain: false,
-        tools: tools.map((t: { name: string; description: string }) => ({
-          name: t.name,
-          description: t.description
-        }))
+        transport,
+        url,
+        command,
+        args,
+        envPath
       })
 
-      await updateAgentVersion()
+      if (!result.ok) {
+        return `安装失败：${result.error}。请检查 ${transport === 'stdio' ? 'command/args' : 'URL 和传输协议'} 是否正确。`
+      }
+
+      const tools = result.data!
       return `安装成功！MCP 服务器 "${name}" 已启用，发现 ${tools.length} 个工具：${tools.map((t: { name: string }) => t.name).join('、')}。下一轮对话即可使用。`
     } catch (err) {
-      return `安装失败：${(err as Error).message}。请检查 ${isStdio ? 'command/args' : 'URL 和传输协议'} 是否正确。`
-    } finally {
-      await client.close().catch(() => {})
+      return `安装失败：${(err as Error).message}`
     }
   },
   {
@@ -164,7 +135,17 @@ export const installMcpServer = tool(
       transport: z.string().describe('传输协议：sse、http 或 stdio（本地 npx 子进程）'),
       url: z.string().optional().describe('SSE/HTTP 的服务器 URL，transport 为 sse/http 时必填'),
       command: z.string().optional().describe('stdio 模式下的启动命令，默认 npx。如 uvx、node 等'),
-      args: z.array(z.string()).optional().describe('stdio 模式下的启动参数，如 ["chrome-devtools-mcp@latest"]'),
+      args: z.string().optional().describe(
+        'stdio 模式下的启动参数，空格分隔的字符串。' +
+        '单参数示例："chrome-devtools-mcp@latest"；' +
+        '多参数示例："chrome-devtools-mcp@latest --headless --isolated=true"'
+      ),
+      envPath: z.string().optional().describe(
+        '仅 stdio 模式需要。子进程的 PATH 路径。' +
+        '打包成桌面应用后 PATH 可能不完整，找不到 npx/node/uvx 等命令时，' +
+        '通过此参数手动指定 PATH。终端输入 which npx 查看 npx 所在目录，填在 PATH 里即可。' +
+        'sse/http 模式无需此参数。'
+      ),
       uuid: z.string().optional().describe('可选，修改已有配置时传入目标 uuid，不传则新建')
     })
   }

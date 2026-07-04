@@ -4,6 +4,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { autoUpdater } from 'electron-updater'
 import icon from '../../resources/icon.png?asset'
 import { registerAll } from './ipc'
+import { initCompanion } from './init'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -64,6 +65,9 @@ app.whenReady().then(() => {
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
+
+  // 初始化 companion 基础设施（目录/配置文件/数据库表/Skills）
+  initCompanion()
 
   // 注册所有 IPC 处理器
   registerAll()

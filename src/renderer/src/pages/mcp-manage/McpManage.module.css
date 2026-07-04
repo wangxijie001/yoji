@@ -10,7 +10,7 @@
         margin-right: 20px;
         margin-bottom: 20px;
         width: 400px;
-        height: 306px;
+        min-height: 290px;
         background-color: var(--default-hover-bg);
         border-radius: 10px;
         padding: 20px;

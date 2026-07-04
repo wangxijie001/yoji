@@ -53,7 +53,7 @@ interface Api {
     onEnabledChanged: (callback: (enabled: boolean) => void) => () => void
   }
   mcp: {
-    testConnection: (transport: string, url: string) => Promise<ApiResponse<{ name: string; description: string }[]>>
+    save: (config: { key: string; name: string; description: string; uuid?: string; transport?: string; url?: string; command?: string; args?: string[]; isExposeToMain?: boolean; envPath?: string }) => Promise<ApiResponse<{ name: string; description: string }[]>>
   }
 }
 

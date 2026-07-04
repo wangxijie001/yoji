@@ -2,16 +2,9 @@ import { createDeepAgent, LocalShellBackend, type DeepAgent } from 'deepagents'
 import { SqliteSaver } from '@langchain/langgraph-checkpoint-sqlite'
 import { app } from 'electron'
 import { join } from 'path'
-import { mkdirSync, writeFileSync, existsSync } from 'fs'
 import { createModel, type ModelConfig } from './model'
-import { AGENTS_MD_TEMPLATE, buildSystemPrompt } from './system-prompt'
-import {
-  initChatHistory,
-} from './utils/chat-history'
-import { initEmotionTable } from './emotion/schema'
+import { buildSystemPrompt } from './system-prompt'
 import { getFullToolList } from './tools'
-import { initSkills } from './skills'
-import { initTaskResultTable } from './children-agent/async/task-result'
 import { toolErrorHandler } from './middleware/tool-error-handler'
 import { getAgentVersion } from '../ipc/agent'
 import { broadcast } from '../ipc/broadcast'
@@ -21,28 +14,12 @@ import  createSyncSubAgents  from './children-agent/sync'
 
 const COMPANION_DIR = join(app.getPath('userData'), 'companion')
 
-//存储和用户聊过的话题和用户画像
-const AGENTS_MD_PATH = join(COMPANION_DIR, 'AGENTS.md')
-
 
 // 持久化 checkpointer，存在 userData/companion/ 目录
 // 整个应用生命周期内复用同一个实例，避免重复打开数据库连接
 export let _checkpointer: SqliteSaver | null = null
 function getCheckpointer(): SqliteSaver {
   if (_checkpointer) return _checkpointer
-  // 确保 companion 目录存在（首次启动时创建）
-  mkdirSync(COMPANION_DIR, { recursive: true })
-
-  // 首次启动时创建 AGENTS.md 模板，Agent 后续会通过 edit_file 自行更新
-  if (!existsSync(AGENTS_MD_PATH)) {
-    writeFileSync(AGENTS_MD_PATH, AGENTS_MD_TEMPLATE, 'utf-8')
-  }
-
-  initChatHistory() // 建 raw_messages、memory_snapshots 等表
-  initEmotionTable() // 建 emotion_log 情绪表
-  initSkills() // 注入内置 skills 到 companion 目录
-  initTaskResultTable() // 建 task_results 异步任务结果表
-
   _checkpointer = SqliteSaver.fromConnString(join(COMPANION_DIR, 'companion.db'))
   return _checkpointer
 }

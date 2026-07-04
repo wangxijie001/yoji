@@ -31,6 +31,7 @@ export type McpConfig = {
     url?: string                     // http/sse 用
     command?: string                 // stdio 用，默认 npx
     args?: string[]                  // stdio 用，如 ['@scope/mcp-pkg@latest']
+    env?: Record<string, string>     // 子进程环境变量，打包后需注入 PATH
   }
   tools?: { name: string; description: string }[],
   version: string // 版本号,每次修改后需要更新

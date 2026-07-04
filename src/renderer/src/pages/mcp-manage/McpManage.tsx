@@ -47,7 +47,7 @@ const McpManage = () => {
 
     // 编辑配置
     const changeConfig = (index: number, field: string, value: any) => {
-        if (['transport', 'url', 'command', 'args'].includes(field)) {
+        if (['transport', 'url', 'command', 'args', 'env'].includes(field)) {
             mcpList[index].config[field] = value
         } else {
             mcpList[index][field] = value
@@ -70,7 +70,7 @@ const McpManage = () => {
     const saveConfig = async (index: number) => {
         const isAdd = mcpList[index].uuid === "new_mcp_model"
         const uuid = isAdd ? uuidv4() : mcpList[index].uuid
-        const { key, name, description, config, isEnabled, isExposeToMain } = mcpList[index]
+        const { key, name, description, config, isExposeToMain } = mcpList[index]
         
         if (!key || !name || !description || !config.transport) {
             message.error('请填写全部参数')
@@ -88,44 +88,25 @@ const McpManage = () => {
                 return
             }
         }
-        // 按 transport 类型组装纯净 config
-        const transport = config.transport || 'sse'
-        const cleanConfig: McpConfig['config'] = transport === 'stdio'
-            ? { transport, command: config.command || 'npx', args: config.args || [] }
-            : { transport, url: config.url || '' }
-        const testArg = transport === 'stdio'
-            ? (cleanConfig.command || 'npx') + ' ' + (cleanConfig.args || []).join(' ')
-            : (cleanConfig.url || '')
-
-        // 测试连接
-        const tools = await mcpApi.testConnection(transport, testArg).catch(() => null)
-        if (!tools) return
-        message.success(`连接成功，发现 ${tools.length} 个工具, 配置已保存`)
-        const version = uuidv4()
-        mcpConfig.set(uuid, {
-            key,
-            uuid,
-            name,
-            description,
-            config: cleanConfig,
-            isEnabled,
-            isExposeToMain: isExposeToMain || false,
-            tools,
-            version
-        })
-        mcpList[index] = {
-            ...mcpList[index],
-            isEnabled,
-            tools,
+        // 测试连接并保存
+        try {
+            const result = await mcpApi.save({
+                key, uuid, name, description,
+                transport: config.transport || 'sse',
+                url: config.url,
+                command: config.command,
+                args: config.args,
+                isExposeToMain,
+                envPath: config.env?.PATH
+            })
+            if (!result || !result.length) return
+            // 保存配置
+            message.success(`连接成功，发现 ${result?.length || 0} 个工具, 配置已保存`)
+            mcpList[index] = { ...mcpList[index], isEnabled: false, tools: result || [] }
+            if (isAdd) { initConfig() } else { mcpList[index].isEdit = false; setMcpList([...mcpList]) }
+        } catch {
+            // mcpApi.save 内部已 toast 错误信息，这里只需兜底
         }
-        if (isAdd) {
-            initConfig()
-        } else {
-            mcpList[index].isEdit = false
-            setMcpList([...mcpList])
-        }
-        // 更新 MCP 库版本号，触发 agent 重建
-        await agentApi.updateVersion()
     }
 
     // 卸载配置
@@ -195,13 +176,13 @@ const McpManage = () => {
                             <span>
                                 {mcp.isEdit ?
                                     <Select
-                                        value={mcp.config.transport || 'sse'}
+                                        value={mcp.config.transport}
                                         onChange={(v) => changeConfig(index, 'transport', v)}
                                         style={{ width: '100%' }}
                                         options={[
-                                            { value: 'sse', label: 'SSE (Server-Sent Events)' },
-                                            { value: 'http', label: 'HTTP (Streamable)' },
-                                            { value: 'stdio', label: 'NPX (本地进程)' }
+                                            { value: 'sse', label: 'SSE' },
+                                            { value: 'http', label: 'HTTP' },
+                                            { value: 'stdio', label: '本地进程启动' }
                                         ]}
                                     /> : mcp.config.transport}
                             </span>
@@ -213,7 +194,7 @@ const McpManage = () => {
                                     <span>
                                         {mcp.isEdit ?
                                             <Input
-                                                value={mcp.config.command || 'npx'}
+                                                value={mcp.config.command}
                                                 placeholder="npx"
                                                 onChange={(e) => changeConfig(index, 'command', e.target.value)}
                                             /> : (mcp.config.command || 'npx')}
@@ -228,6 +209,17 @@ const McpManage = () => {
                                                 placeholder="@scope/mcp-pkg@latest"
                                                 onChange={(e) => changeConfig(index, 'args', e.target.value.split(/\s+/).filter(Boolean))}
                                             /> : (mcp.config.args || []).join(' ')}
+                                    </span>
+                                </div>
+                                <div className={styles.listItem}>
+                                    <span>envPath</span>
+                                    <span>
+                                        {mcp.isEdit ?
+                                            <Input
+                                                placeholder="找不到 npx？在此填入 npx 所在目录（其它命令同样适用）"
+                                                value={mcp.config.env?.PATH || ''}
+                                                onChange={(e) => changeConfig(index, 'env', e.target.value ? { PATH: e.target.value } : undefined)}
+                                            /> : (mcp.config.env?.PATH || '')}
                                     </span>
                                 </div>
                             </>
@@ -284,34 +276,55 @@ const McpManage = () => {
                     <ul>
                         <li>
                             <strong>名称</strong>
-                            <p>{openDsc.name || '未配置'}</p>
-
+                            <p>给这个 MCP 服务起个名字，方便你在列表中识别。不会影响功能。</p>
+                            <p style={{ color: '#1677ff' }}>{openDsc.name || '未配置'}</p>
                         </li>
                         <li>
                             <strong>key</strong>
-                            <p>{openDsc.key || '未配置'}</p>
-
+                            <p>这个 MCP 服务的唯一标识，AI 调用工具时会带着这个前缀（如 <code>yourkey__toolName</code>）。只能填小写字母和短横线，一旦保存不要随意修改，否则工坊里绑定的 Agent 会失效。</p>
+                            <p style={{ color: '#1677ff' }}>{openDsc.key || '未配置'}</p>
                         </li>
                         <li>
                             <strong>transport</strong>
-                            <p>{openDsc.config?.transport || '未配置'}</p>
-
+                            <div>选择这个 MCP 服务的通信方式：</div>
+                            <ul style={{ margin: '4px 0', paddingLeft: 18, fontSize: 12, color: '#696969' }}>
+                                <li>SSE / HTTP—— 远程服务，需填写下方的 URL 地址</li>
+                                <li>本地进程 —— 本地命令，通过 npx或其他命令启动，需填写 command 和 args</li>
+                            </ul>
+                            <div style={{ color: '#1677ff' }}>{openDsc.config?.transport || '未配置'}</div>
                         </li>
                         <li>
                             <strong>url</strong>
-                            <p>{openDsc.config?.url || '未配置'}</p>
-
+                            <p>仅 SSE / HTTP 模式有效。填写 MCP 服务的完整地址，例如 <code>https://example.com/mcp</code></p>
+                            <p style={{ color: '#1677ff' }}>{openDsc.config?.url || '未配置'}</p>
+                        </li>
+                        <li>
+                            <strong>command / args</strong>
+                            <p>仅 NPX 模式有效。command 填启动命令（通常是 <code>npx</code>），args 填包名和额外参数，空格分隔。例如：<code>chrome-devtools-mcp@latest --headless</code></p>
+                            <p style={{ color: '#1677ff' }}>
+                                {openDsc.config?.transport === 'stdio'
+                                    ? `${openDsc.config?.command || 'npx'} ${(openDsc.config?.args || []).join(' ')}`
+                                    : '非 NPX 模式无需配置'}
+                            </p>
+                        </li>
+                        <li>
+                            <strong>PATH（环境变量）</strong>
+                            <p>仅 NPX 模式且<strong>打包安装后</strong>需要。开发环境（pnpm dev）跳过此项。如果双击 App 打开后测试连接报错 <code>Connection closed</code> 或 <code>command not found</code>，说明系统找不到 npx。在终端输入 <code>which npx</code> 查看路径，填入即可。多个路径用冒号 <code>:</code> 隔开。</p>
+                            <p style={{ color: '#1677ff' }}>{openDsc.config?.env?.PATH || '未配置'}</p>
                         </li>
                         <li>
                             <strong>简介</strong>
-                            <p>{openDsc.description || '未配置'}</p>
+                            <p>用一两句话告诉 AI 这个 MCP 服务能做什么。写得好 AI 才知道什么时候该用它。</p>
+                            <p style={{ color: '#1677ff' }}>{openDsc.description || '未配置'}</p>
                         </li>
                         <li>
                             <strong>启用</strong>
+                            <p>开关控制这个 MCP 是否生效。关闭后 AI 看不到它的工具。</p>
                             <p><Tag color={openDsc.isEnabled ? 'cyan' : ''} variant='solid'>{openDsc.isEnabled ? '已启用' : '未启用'}</Tag></p>
                         </li>
                         <li>
                             <strong>工具列表</strong>
+                            <p>测试连接成功后自动发现的工具列表。每个工具对应一个 AI 可调用的能力。</p>
                             <p>
                                 {openDsc.tools?.map(tool =>
                                     <div className={styles.toolItem} key={tool.name}>

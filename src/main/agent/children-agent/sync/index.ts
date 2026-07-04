@@ -30,10 +30,7 @@ export async function createSyncSubAgents(): Promise<SubAgent[]> {
     const allMcp = (mcpConfig.getAll() || {}) as Record<string, McpConfig>
     for (const mcp of Object.values(allMcp)) {
       if (mcpKeySet.has(mcp.key) && mcp.isEnabled) {
-        const t = mcp.config.transport || 'sse'
-        mcpServerConfigs[mcp.key] = t === 'stdio'
-          ? { transport: 'stdio' as const, command: mcp.config.command || 'npx', args: mcp.config.args || [] }
-          : { transport: t as 'sse' | 'http', url: mcp.config.url || '' }
+        mcpServerConfigs[mcp.key] = mcp.config
       }
     }
   }
