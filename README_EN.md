@@ -1,5 +1,11 @@
 # Yoji — Your Desktop AI Companion
 
+[![GitHub stars](https://img.shields.io/github/stars/wangxijie001/yoji)](https://github.com/wangxijie001/yoji/stargazers)
+[![License](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
+[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey)]()
+[![Electron](https://img.shields.io/badge/electron-39.8-47848f)]()
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6)]()
+
 > [中文版](README.md)
 
 Yoji is not just a chatbot. **It can operate your computer** — manage files, run scripts, search the web, and call external APIs — all while maintaining an evolving "personality" and "emotions". Everything stays local, **your privacy is in your hands**.
@@ -32,7 +38,7 @@ Connect to the Model Context Protocol ecosystem — Yoji's capabilities are theo
 
 > MCP is not a "plugin system" — it's an open industry-standard protocol. Any MCP-compliant service connects instantly. You define the boundaries.
 
-### 🎤 Text-to-Speech
+### 🎤 Text-to-Speech (TTS)
 
 Like a real person speaking in your ear — **macOS only for now**:
 
@@ -41,7 +47,17 @@ Like a real person speaking in your ear — **macOS only for now**:
 - Smart sentence segmentation for natural rhythm
 - One-click off, instant stop
 - Voice character adjustable in **macOS Settings → Accessibility → Spoken Content**
-- Local voice model planned, but package size too large for current release
+
+### 🎙️ Voice Wake & Talk
+
+Say "Xiao You" and start talking — **macOS native SFSpeechRecognizer, fully offline**:
+
+- Click the mic to enter continuous listening, say "**Xiao You**" to wake
+- Speak naturally after wake — streaming transcription in real time
+- Auto-send after 2 seconds of silence — hands-free
+- Auto-resumes listening after sending — continuous conversation
+- Powered by Siri's speech engine — **no network, zero latency, zero cost**
+- Windows not supported; entry hidden automatically on unsupported platforms
 
 ### 💬 Proactive Chat
 
@@ -100,6 +116,15 @@ Three-tier memory architecture ensures Yoji never "forgets":
 
 The more you talk, the better she understands you. And all of this **stays on your computer** — no uploads, no cloud, no third parties.
 
+### 📄 Smart Document Processing
+
+AI can read and parse your files directly — not just plain text, but PDF and Word too:
+
+- **PDF Extraction**: Auto-detects text layers and extracts content for analysis
+- **Word Documents**: .docx one-click to text, no manual copy-paste
+- **Binary Protection**: Unsupported formats (images, audio, video) are blocked with a clear message — no cryptic errors
+- Transparent to the user — just drag files in, the Agent handles the rest
+
 ### 📦 Take It With You
 
 - **Export**: one-click package everything (memories + emotions + config) into a `.ecompanion` file
@@ -126,8 +151,10 @@ Electron + React + TypeScript + Vite
       │
       ├── LangChain deepagents   ← AI Agent framework (tool calling, sub-agent dispatch, interrupt approval)
       ├── @langchain/mcp-adapters ← MCP protocol adapter (dynamic tool discovery & loading)
-      ├── SQLite + sqlite-vec    ← Local vector database (chat history + semantic memory)
-      └── better-sqlite3         ← Checkpoint persistence (conversation state snapshots)
+      ├── SQLite + sqlite-vec            ← Local vector database (chat history + semantic memory)
+      ├── pdf-parse + mammoth           ← Smart document processing (PDF / Word text extraction)
+      ├── electron-native-speech        ← macOS native speech recognition (SFSpeechRecognizer)
+      └── better-sqlite3                ← Checkpoint persistence (conversation state snapshots)
 ```
 
 **Design Principles**: local-first, privacy-first, extensibility-first. No data uploads, no cloud dependencies.
@@ -210,6 +237,8 @@ pnpm build:linux
 - ✓ Long-running async task scheduling (non-blocking + concurrency)
 - ✓ Workshop custom agents (role config + tool set assembly + sync/async modes)
 - ✓ Async task cancellation (manual + AI-initiated)
+- ✓ Voice wake & talk (macOS native SFSpeechRecognizer + wake word + streaming recognition)
+- ✓ Smart document processing (PDF/DOCX text extraction + binary protection)
 - Collaboration tools (self-integration currently supported; default integrations planned)
 
 ---

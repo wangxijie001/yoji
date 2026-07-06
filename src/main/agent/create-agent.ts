@@ -6,6 +6,7 @@ import { createModel, type ModelConfig } from './model'
 import { buildSystemPrompt } from './system-prompt'
 import { getFullToolList } from './tools'
 import { toolErrorHandler } from './middleware/tool-error-handler'
+import { fileReadGuard } from './middleware/file-read-guard'
 import { getAgentVersion } from '../ipc/agent'
 import { broadcast } from '../ipc/broadcast'
 import  createSyncSubAgents  from './children-agent/sync'
@@ -55,7 +56,7 @@ export async function createAgent(config: ModelConfig): Promise<DeepAgent> {
     }),
     memory: ['/AGENTS.md'],
     skills: ['/skills/builtin/', '/skills/user/'],
-    middleware: [toolErrorHandler],
+    middleware: [fileReadGuard, toolErrorHandler],
     checkpointer: getCheckpointer(),
     interruptOn: {
       execute: { allowedDecisions: ['approve', 'reject'] },

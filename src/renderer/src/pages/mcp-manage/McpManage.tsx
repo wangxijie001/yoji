@@ -135,7 +135,7 @@ const McpManage = () => {
                                 title="保存"
                             />
                         )}
-                        {!mcp.isEdit && mcp.isEnabled && (
+                        {!mcp.isEdit &&  !mcp.isAddModel && (
                             <i
                                 className="iconfont icon-cocos-zidingyiguanli"
                                 onClick={() => changeConfig(index, 'isEdit', true)}

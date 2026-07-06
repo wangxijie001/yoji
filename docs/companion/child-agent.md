@@ -38,12 +38,14 @@ createAgent()
 所有同步 Agent
   → 收集 mcpList，按 key 去重
   → 单一 MultiServerMCPClient 连接所有 MCP
+  → createMcpClient() 统一处理：开发环境去 env，生产环境合并 env.PATH
   → getTools() 获取全部工具，按 serverKey 预分组 → Map<key, tools[]>
   → 每个 Agent 按 mcpList[].key 取值组装 SubAgent
 ```
 
 关键设计：
 - **单一 MCP 连接**：所有同步 Agent 共享一个 `MultiServerMCPClient`，减少连接开销
+- **PATH 按需合并**：存储只存用户原始输入，`createMcpClient` 连接时再拼 `process.env.PATH`，避免重复保存叠加
 - **工具精准分发**：`prefixToolNameWithServerName: true`，工具名 `serverKey__toolName`，按 Agent 的 `mcpList[].key` 匹配
 - **无 MCP 也能用**：Agent 没配 MCP 工具也能正常创建（纯 LLM Agent）
 - **连接超时 15s**：MCP 连接失败不影响其他 Agent 创建
@@ -101,6 +103,7 @@ createAgent() → getAgentVersion() → 对比缓存 → 不匹配则重建
 | `src/main/agent/children-agent/sync/index.ts` | 同步 Agent 工厂：配置读取、MCP 连接、工具分发、SubAgent 组装 |
 | `src/main/agent/children-agent/async/` | 异步 Agent 调度：队列、事件循环、执行器 |
 | `src/main/agent/children-agent/agent-list.ts` | Agent 配置读写：getAgent / isAgentExist / getAllAgentDesc |
+| `src/main/agent/mcp/index.ts` | MCP 连接管理：createMcpClient（PATH 合并入口）/ testConnection / saveMcpConfig |
 | `src/main/agent/system-prompt.ts` | buildSystemPrompt() 动态注入可用子 Agent 描述 |
 | `src/main/agent/create-agent.ts` | createAgent() 缓存 + 重建入口 |
 | `src/main/ipc/agent.ts` | getAgentVersion / updateAgentVersion + IPC 通道 |

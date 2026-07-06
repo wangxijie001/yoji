@@ -28,6 +28,7 @@
             }
 
             i {
+                margin-left: 10px;
                 &:hover {
                     color: #1677ff;
                 }

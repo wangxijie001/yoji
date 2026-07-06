@@ -11,6 +11,7 @@ import InfiniteScroll from 'react-infinite-scroller'
 import dayjs from 'dayjs'
 import proactiveChat from "./proactive-chat";
 import { MiniWindowType } from "../home/Home";
+import { useVoiceDialogue } from './voice-dialogue'
 
 
 
@@ -25,6 +26,9 @@ type MessageItem = {
 };
 type SendMessageEvent = {
     event?: React.KeyboardEvent<HTMLTextAreaElement>;
+    humanMessage?: string;
+    // interruptType?: ChatMessage['interruptDecision'];
+    // interruptMessage?: string;
     interruptType?: ChatMessage['interruptDecision'];
     interruptMessage?: string;
     assistantMessage?: string;// 系统提示ai助手的消息
@@ -48,6 +52,24 @@ const AiChat = () => {
     const [isShowCurExecLogDrawer, setIsShowCurExecLogDrawer] = useState<boolean>(false)
     const [curExecLog, setCurExecLog] = useState<{ isLoading: boolean, log: string }>({ isLoading: false, log: '' })
     const [asyncTaskQueue, setAsyncTaskQueue] = useState<any[]>([])
+
+    // 语音交互
+    const {
+        isListening: isListeningVoice,
+        recordingVoice: isRecordingVoice,
+        startListening,
+        stopListening,
+        isSupported,
+    } = useVoiceDialogue({
+        onWake: () => { },
+        onMessage: (text) => {
+            setInputMessage(text)
+        },
+        onMessageFinal: (text) => {
+            sendMessage({ humanMessage: text })
+        },
+    })
+
 
 
     useEffect(() => {
@@ -75,7 +97,7 @@ const AiChat = () => {
             // 异步任务队列更新
             isShowCurExecLogDrawer && queryAsyncTaskQueue()
         })
- 
+
         // 启动主动聊天定时器,并获取当前系统是否允许主动聊天
         proactiveChat.initProactiveConfig(sendMessage, setIsProactiveChatEnabled)
 
@@ -122,7 +144,7 @@ const AiChat = () => {
     const changeOpenCurExecLog = () => {
         const { isFinish, illation } = streamRef.current
         setIsShowCurExecLogDrawer(!isShowCurExecLogDrawer)
-        setCurExecLog({ isLoading: !isFinish,log: illation })
+        setCurExecLog({ isLoading: !isFinish, log: illation })
         queryAsyncTaskQueue()
     }
 
@@ -130,8 +152,8 @@ const AiChat = () => {
     const queryAsyncTaskQueue = () => {
         agentApi.queryTaskQueue().then((res) => {
             const { taskQueue, runningTaskQueue } = res || {}
-            const _taskQueue = taskQueue.map(item => ({...item,status:'waiting',statusDesc:'等待中'}))
-            const _runningTaskQueue = runningTaskQueue.map(item => ({...item,status:'running','statusDesc':'运行中'}))
+            const _taskQueue = taskQueue.map(item => ({ ...item, status: 'waiting', statusDesc: '等待中' }))
+            const _runningTaskQueue = runningTaskQueue.map(item => ({ ...item, status: 'running', 'statusDesc': '运行中' }))
             setAsyncTaskQueue([..._taskQueue || [], ..._runningTaskQueue || []])
         })
     }
@@ -153,11 +175,10 @@ const AiChat = () => {
     }
 
 
-    const sendMessage = async ({ event, interruptType, interruptMessage, assistantMessage }: SendMessageEvent) => {
+    const sendMessage = async ({ event, humanMessage, interruptType, interruptMessage, assistantMessage }: SendMessageEvent) => {
 
-        const userMsg = inputMessage || interruptMessage || assistantMessage || '';
+        const userMsg = inputMessage || humanMessage || interruptMessage || assistantMessage || '';
         if (event?.shiftKey || !userMsg) return;
-
         if (!streamRef.current.isFinish) {
             message.warning('我还在处理任务呢，等一会吧')
             return
@@ -269,6 +290,16 @@ const AiChat = () => {
         }
     }
 
+    //切换语音交互状态
+    const changeVoiceDialogueEnabled = () => {
+        if(isListeningVoice) {
+            stopListening()
+            return
+        }
+        message.success('语音对话已开启,说出 “小优” 即可唤醒')
+        startListening()
+    }
+
     //主进程需要ai助手处理的消息
     const onProactiveNotice = (taskResult: string) => {
         unreadNotificationsRef.current.message.push(taskResult)
@@ -360,22 +391,31 @@ const AiChat = () => {
                     <div>
                         <i
                             className="iconfont icon-cocos-ailiaotian"
-                            style={{ fontSize: 22, color: isProactiveChatEnabled ? 'var(--default-link-text-color)' : '#999', cursor: 'pointer' }}
+                            style={{ color: isProactiveChatEnabled ? 'var(--default-link-text-color)' : '' }}
                             onClick={() => changeProactiveChatEnabled(!isProactiveChatEnabled)}
                             title={isProactiveChatEnabled ? '主动聊天已开启' : '主动聊天已停止'}
                         />
                         <i
                             className="iconfont icon-cocos-a-shujujianguan1"
-                            style={{ fontSize: 20, color: isShowCurExecLogDrawer ? 'var(--default-link-text-color)' : '#999', cursor: 'pointer' }}
+                            style={{ color: isShowCurExecLogDrawer ? 'var(--default-link-text-color)' : '' }}
                             onClick={() => changeOpenCurExecLog()}
                             title={'当前运行状态'}
                         />
                         <i
                             className="iconfont icon-cocos-yuyin"
-                            style={{ fontSize: 20, color: ttsEnabled ? 'var(--default-link-text-color)' : '#999', cursor: 'pointer' }}
+                            style={{ color: ttsEnabled ? 'var(--default-link-text-color)' : '' }}
                             onClick={() => ttsApi.toggle().then(setTtsEnabled)}
                             title={ttsEnabled ? '语音播报已开启' : '语音播报已关闭'}
                         />
+                        {isSupported && (
+                            <i
+                                className={`iconfont icon-cocos-maikefeng`}
+                                style={{ color: isListeningVoice ? 'var(--default-link-text-color)' : '' }}
+                                onClick={() => changeVoiceDialogueEnabled()}
+                                title={isListeningVoice ? '语音对话已开启(说出 ‘小优’ 即可唤醒)' : '语音对话已关闭'}
+                            />
+                        )}
+
                     </div>
                     {inputMessage && !curExecLog.isLoading && (
                         <Button
@@ -387,7 +427,7 @@ const AiChat = () => {
                     {curExecLog.isLoading && (
                         <Button
                             type="primary"
-                            onClick={() => agentApi.stop()}
+                            onClick={() => { agentApi.stop() }}
                             icon={<i className="iconfont icon-cocos-zhongzhi" style={{ fontSize: 20 }} />}
                         />
                     )}
@@ -429,17 +469,17 @@ const AiChat = () => {
                         {asyncTaskQueue.map((item, index) => (
                             <div key={item.taskId} className={styles.taskItem}>
                                 <span>
-                                    <div style={{fontWeight: 'bold'}}>{item.taskId}</div>
-                                    <div>{(item.params|| '').length > 90 ? item.params.substring(0, 90) + '...' : item.params}</div>
+                                    <div style={{ fontWeight: 'bold' }}>{item.taskId}</div>
+                                    <div>{(item.params || '').length > 90 ? item.params.substring(0, 90) + '...' : item.params}</div>
                                     <div style={{ color: item.status === 'running' ? 'var(--default-running-text-color)' : '#999' }}>{item.statusDesc}</div>
                                 </span>
                                 <span>
-                                    <i 
-                                      className="iconfont icon-cocos-zhongzhi" 
-                                      style={{ fontSize: 20 }} 
-                                      title="取消任务"
-                                      onClick={() => cancelAsyncTask(index)}
-                                      />
+                                    <i
+                                        className="iconfont icon-cocos-zhongzhi"
+                                        style={{ fontSize: 20 }}
+                                        title="取消任务"
+                                        onClick={() => cancelAsyncTask(index)}
+                                    />
                                 </span>
                             </div>
                         ))}
@@ -454,6 +494,9 @@ const AiChat = () => {
                 </div>
 
             </Drawer>
+            { isRecordingVoice && <div className={styles.recordingVoice}>
+                <i className={`iconfont icon-cocos-maikefeng`}/>
+            </div>}
         </main>
     );
 };

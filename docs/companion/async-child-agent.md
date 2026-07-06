@@ -14,7 +14,7 @@
   ├── 正常对话
   └── 工具: start_background_task / query_task_result
 
-后台调度系统（src/main/agent/async-children-agent/）
+后台调度系统（src/main/agent/children-agent/async/）
   ├── taskQueue[]      — 待执行任务
   ├── runningTaskQueue  — 执行中任务
   ├── taskResultQueue[] — 待通知结果
@@ -50,10 +50,10 @@ eventLoop 处理结果
 
 | 文件 | 作用 |
 |------|------|
-| `src/main/agent/async-children-agent/index.ts` | 调度核心：任务队列、事件循环、执行器、Agent 缓存 |
-| `src/main/agent/async-children-agent/agent-list.ts` | 子 Agent 注册表：配置、MD5 哈希、工具绑定 |
-| `src/main/agent/async-children-agent/task-result.ts` | 结果持久化：SQLite CRUD、过期清理 |
-| `src/main/agent/mcp/index.ts` | MCP 工具获取：按需连接、用完关闭 |
+| `src/main/agent/children-agent/async/index.ts` | 调度核心：任务队列、事件循环、执行器、Agent 缓存 |
+| `src/main/agent/children-agent/async/tools.ts` | 异步任务工具：pushAsyncTask / cancelAsyncTask / getAsyncTaskAgent / getAsyncTaskResult |
+| `src/main/agent/children-agent/async/task-result.ts` | 结果持久化：SQLite CRUD、过期清理 |
+| `src/main/agent/mcp/index.ts` | MCP 连接管理：createMcpClient（PATH 合并）/ testConnection / saveMcpConfig |
 | `src/main/agent/utils/checkpoint-cleaner.ts` | 新增 `deleteThreadCheckpoints(threadId)` |
 
 ## 并发模型

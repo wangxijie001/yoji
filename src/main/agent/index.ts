@@ -2,7 +2,7 @@ import { HumanMessage, AIMessage, type BaseMessage, SystemMessage } from '@langc
 import { Command } from '@langchain/langgraph'
 import { type ModelConfig } from './model'
 import { ChatMessage, StreamCallbacks } from '../../shared/types'
-import { cleanupCheckpoints } from './utils/checkpoint-cleaner'
+import { cleanupCheckpoints, deleteMessageByIndex } from './utils/checkpoint-cleaner'
 import { generateAndStoreSnapshot, insertMessageHistory } from './utils/chat-history'
 
 import { changeEmotion, getCurrentEmotionInfo } from './emotion'
@@ -227,7 +227,7 @@ export async function chatStream(
     //播放剩余半句
     tts.flush()
     //清理checkpoint快照
-    cleanupCheckpoints(30)
+    cleanupCheckpoints(5)
     //记录聊天记录
     insertMessageHistory({
       session_id: 'main',
@@ -252,8 +252,20 @@ export async function chatStream(
       callbacks.onDone()
       return
     }
-    callbacks.onError(err instanceof Error ? err.message : '流式调用失败')
-    console.error(err)
+    const errMsg = err instanceof Error ? err.message : '流式调用失败'
+
+    // 自动修复：deepagents 产生的 file 内容块不被 DeepSeek/Qwen 支持
+    const match = errMsg.match(/messages\[(\d+)\].*unknown variant.*file/)
+    if (match) {
+      const badIndex = parseInt(match[1], 10)
+      await deleteMessageByIndex(agent, THREAD_ID, badIndex - 1)
+      callbacks.onError(
+        `已自动修复：移除了第 ${badIndex + 1} 条不支持的消息内容，请重新发送。`
+      )
+      return
+    }
+
+    callbacks.onError(errMsg)
     return
   }
 }

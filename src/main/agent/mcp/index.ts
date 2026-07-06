@@ -36,9 +36,20 @@ const fetchMcpTools = async (config: McpServerConfig): Promise<any[]> => {
 
 //创建mcp客户端
 export const createMcpClient = (config: McpServerConfig): MultiServerMCPClient => {
-  // 开发环境无需 env，生产环境保留已存储的 env 配置
-  const mcpServers = app.isPackaged ? config : Object.fromEntries(
-    Object.entries(config).map(([k, v]) => [k, { ...v, env: undefined }])
+  // 连接时合并用户 PATH 到 system PATH（仅生产环境）；开发环境去掉 env
+  const mcpServers = Object.fromEntries(
+    Object.entries(config).map(([k, v]) => {
+      const userPath = (v as any).env?.PATH
+      if (!app.isPackaged) {
+        // 开发环境：PATH 完整，不需要 env
+        const { env, ...rest } = v as any
+        return [k, rest]
+      }
+      if (userPath) {
+        return [k, { ...v, env: { PATH: userPath + ':' + (process.env.PATH || '') } }]
+      }
+      return [k, v]
+    })
   )
 
   return new MultiServerMCPClient({
@@ -82,8 +93,9 @@ export const saveMcpConfig = async (config: {
 }): Promise<{ ok: boolean; data?: { name: string; description: string }[]; error?: string }> => {
   const { key, name, description, transport, url, command, args, envPath, isEnabled, isExposeToMain, uuid: existingUuid } = config
 
+  // 只存用户原始输入，连接时在 createMcpClient 中合并 system PATH
   const serverConfig = transport === 'stdio'
-    ? { transport: 'stdio' as const, command: command || 'npx', args: args || [], ...(envPath ? { env: { PATH: envPath + ':' + (process.env.PATH || '') } } : {}) }
+    ? { transport: 'stdio' as const, command: command || 'npx', args: args || [], ...(envPath ? { env: { PATH: envPath } } : {}) }
     : { transport: (transport || 'sse') as 'sse' | 'http', url: url || '' }
 
   const connResult = await testConnection(serverConfig)

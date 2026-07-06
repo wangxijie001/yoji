@@ -126,6 +126,10 @@
                 align-items: center;
                 gap: 10px;
                 cursor: pointer;
+                >i{
+                    font-size: 20px;
+                    color: #999;
+                }
             }
         }
 
@@ -157,6 +161,32 @@
             width: 100%;
             margin: 6px 0;
         }
+    }
+}
+
+.recordingVoice {
+    position: absolute;
+    top:50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    padding: 20px;
+    border-radius: 30px;
+    >i{
+        font-size: 60px;
+        color: #e6fffb;
+        animation: glow-pulse 2s ease-in-out infinite;
+    }
+    
+}
+
+@keyframes glow-pulse {
+    0%, 100% {
+        text-shadow: 0 0 20px #87e8de;
+    }
+    50% {
+        color: #d3adf7;
+        text-shadow: 0 0 40px #9254de;
     }
 }
 

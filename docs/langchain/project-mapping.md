@@ -21,15 +21,21 @@ src/main/agent/
 │   ├── sync/index.ts         ← createSyncSubAgents() MCP 统一连接 + 工具分发
 │   ├── agent-list.ts         ← Agent 配置读写
 │   └── async/                ← 异步调度系统
+├── mcp/
+│   └── index.ts              ← MCP 连接管理：createMcpClient / testConnection / saveMcpConfig
 ├── middleware/
-│   └── summarization.ts      ← 摘要中间件（暂未启用，框架内置）
+│   ├── summarization.ts      ← 摘要中间件（暂未启用，框架内置）
+│   ├── file-read-guard.ts    ← 文件读取拦截（PDF→文字提取，二进制拦截，兼容 DeepSeek/Qwen）
+│   └── tool-error-handler.ts ← 工具调用容错
 ├── tools/
 │   ├── index.ts              ← 工具注册
 │   └── search-memories.ts    ← search_memories + fetch_raw_messages
 └── utils/
     ├── chat-history.ts       ← 表结构 + 消息读写 + generateAndStoreSnapshot
-    ├── checkpoint-cleaner.ts ← 每次对话后清理旧 checkpoint
-    └── embedding.ts          ← 本地向量化 (all-MiniLM-L6-v2)
+    ├── checkpoint-cleaner.ts ← 清理旧 checkpoint + deleteMessageByIndex 精确删消息
+    ├── speech.ts             ← macOS 原生语音识别 (electron-native-speech)
+    ├── embedding.ts          ← 本地向量化 (all-MiniLM-L6-v2)
+    └── tts.ts                ← 流式 TTS 播报
 
 src/main/ipc/
 ├── agent.ts                  ← ipcMain.handle('agent:chat' / 'agent:updateVersion') + getAgentVersion
@@ -59,6 +65,10 @@ src/renderer/src/api/
 | `streaming` | IPC 逐 chunk 推送 + `agent:done` | ✅ 已实现 |
 | `tools` | `query_current_time` + `search_memories` + `fetch_raw_messages` | ✅ 已实现 |
 | **`subagents`** | 同步 Agent 工坊创建 + MCP 工具分发；异步 Agent 后台调度 | ✅ 已实现 |
+| **MCP PATH** | 存储只存用户原始值，`createMcpClient` 连接时合并 `process.env.PATH`，避免重复拼接 | ✅ 已实现 |
+| **文件格式兼容** | `fileReadGuard` 中间件：PDF → `pdf-parse` 提取文字、DOCX → `mammoth` 提取文字、二进制拦截，防止 `file` 内容块导致 DeepSeek/Qwen 400 错误 | ✅ 已实现 |
+| **消息自动修复** | 400 错误正则提取索引 → `deleteMessageByIndex` + `RemoveMessage` 精确删除坏消息 → 提示重发 | ✅ 已实现 |
+| **语音唤醒对话** | macOS 原生 `SFSpeechRecognizer` (electron-native-speech) → 唤醒词检测 → 消息采集 → AI 回复 → TTS 播报 | ✅ 已实现 |
 | `skills` | 伴侣行为模板，按需加载。详见 [deepagents-skills.md](deepagents-skills.md) | 📋 规划中 |
 | **`agentVersion`** | 统一版本号，MCP/模型/工坊变更自动触发 Agent 重建 | ✅ 已实现 |
 

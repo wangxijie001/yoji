@@ -113,9 +113,9 @@ function cleanSentence(text: string): string {
     // 加粗 **text** → 保留 text
     .replace(/\*\*([^*]+)\*\*/g, '$1')
     // 标题 / 引用 / 列表标记
-    .replace(/^#{1,6}\s+/gm, '')
-    .replace(/^>\s+/gm, '')
-    .replace(/^[-*+]\s+/gm, '')
+    // .replace(/^#{1,6}\s+/gm, '')
+    // .replace(/^>\s+/gm, '')
+    // .replace(/^[-*+]\s+/gm, '')
     // 剩余零散符号
     .replace(/[\*\_\~\`\#\[\]]/g, ' ')
     // 括号及其内容

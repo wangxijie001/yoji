@@ -1,8 +1,8 @@
 @font-face {
   font-family: "iconfont"; /* Project id 3158929 */
-  src: url('iconfont.woff2?t=1783066238618') format('woff2'),
-       url('iconfont.woff?t=1783066238618') format('woff'),
-       url('iconfont.ttf?t=1783066238618') format('truetype');
+  src: url('iconfont.woff2?t=1783266808916') format('woff2'),
+       url('iconfont.woff?t=1783266808916') format('woff'),
+       url('iconfont.ttf?t=1783266808916') format('truetype');
 }
 
 .iconfont {
@@ -11,6 +11,10 @@
   font-style: normal;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-cocos-maikefeng:before {
+  content: "\e653";
 }
 
 .icon-cocos-pushpin-2-line:before {

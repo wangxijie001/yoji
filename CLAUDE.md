@@ -55,9 +55,13 @@ src/main/
     │   └── emotion_model.ts # LLM 情绪分析
     ├── tools/             # Agent 工具集（含 mcp-manage.ts MCP 管理工具）
     ├── skills/            # 内置 Skills
-    ├── middleware/         # Agent 中间件（tool-error-handler: 工具调用容错）
+    ├── middleware/         # Agent 中间件
+    │   ├── tool-error-handler.ts  # 工具调用容错
+    │   ├── file-read-guard.ts     # 文件读取拦截：PDF→pdf-parse 提取文字、二进制拦截、兼容 DeepSeek/Qwen
+    │   └── summarization.ts       # 摘要中间件
     ├── children-agent/    # MCP 执行子 Agent
-    └── utils/             # checkpoint 清理、chat-history、TTS 播报、token-logger、embedding 等
+    └── utils/             # checkpoint 清理（含 deleteMessageByIndex 精确删消息）、chat-history、TTS 播报、
+                            # token-logger、embedding、speech（macOS 原生语音识别）
 ```
 
 ### 2. 预加载脚本 (`src/preload/`)
@@ -219,6 +223,35 @@ companion/
 5. MCP 工具 schema 全在子 Agent 内部，不污染主 Agent 上下文
 
 **Agent 重建通知**：重建开始时主进程广播 `agent:rebuilding`（start/done），渲染进程显示"AI 核心重启中"提示。
+
+### 文件格式兼容
+文件：`src/main/agent/middleware/file-read-guard.ts`（wrapToolCall 中间件）。
+
+**背景**：deepagents 的 `read_file` 工具读取二进制文件（PDF、图片等）时返回 `{ type: 'file', ... }` 内容块，但 DeepSeek/Qwen API 只接受 `text` 类型，会报 400 错误。
+
+**方案**：
+- PDF → `pdf-parse` 提取文字后返回 text
+- DOCX → `mammoth` 提取文字后返回 text
+- 图片/音视频/压缩包 → 拦截返回错误提示
+- 文本文件 → 放行
+
+**兜底机制**：`chatStream` 的 catch 中正则 `/messages\[(\d+)\].*unknown variant.*file/` 匹配 400 错误，自动用 `deleteMessageByIndex` + `RemoveMessage` 精确删除坏消息，提示用户重发。
+
+### 语音唤醒对话
+文件：`src/main/agent/utils/speech.ts`（主进程注册）、`src/renderer/src/pages/ai-chat/voice-dialogue.ts`（渲染进程 Hook）。
+
+**架构**：三进程协作：
+```
+macOS SFSpeechRecognizer
+  → electron-native-speech (Swift helper, 280KB)
+    → 主进程 registerSpeechHandlers(ipcMain, webContents)
+      → preload exposeElectronSpeech() → window.electronSpeech
+        → 渲染进程 useVoiceDialogue() Hook
+```
+
+**状态机**：`idle → 点麦克风 → listening → 听到"小优" → woken → 2s 静默 → idle → onMessageFinal 发消息`
+
+**兼容性**：`process.platform === 'darwin'` 时注册，Windows 上静默跳过。渲染进程 `isSupported` 为 false 时隐藏语音按钮。
 
 ## 窗口配置
 

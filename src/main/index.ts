@@ -5,6 +5,7 @@ import { autoUpdater } from 'electron-updater'
 import icon from '../../resources/icon.png?asset'
 import { registerAll } from './ipc'
 import { initCompanion } from './init'
+import { initSpeech } from './agent/utils/speech'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -88,6 +89,11 @@ app.whenReady().then(() => {
   })
 
   createWindow()
+
+  // macOS 原生语音识别（仅 mac 可用）
+  if (process.platform === 'darwin') {
+    initSpeech(ipcMain, mainWindow!)
+  }
 
   // 自动更新检查（生产环境生效，开发环境跳过）
   if (!is.dev) {

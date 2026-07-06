@@ -1,6 +1,9 @@
 import Database from 'better-sqlite3'
 import { app } from 'electron'
 import { join } from 'path'
+import { RemoveMessage } from '@langchain/core/messages'
+import type { BaseMessage } from '@langchain/core/messages'
+
 
 const DB_PATH = join(app.getPath('userData'), 'companion', 'companion.db')
 const THREAD_ID = 'companion'
@@ -41,4 +44,25 @@ export function deleteThreadCheckpoints(threadId: string): void {
   db.prepare('DELETE FROM writes WHERE thread_id = ?').run(threadId)
   db.prepare('DELETE FROM checkpoints WHERE thread_id = ?').run(threadId)
   db.close()
+}
+
+
+//删除第n条消息记录（从 checkpoint state 中移除指定位置的消息）
+export async function deleteMessageByIndex(
+  agent: { getState: any; updateState: any },
+  threadId: string,
+  index: number
+): Promise<void> {
+  const state = await agent.getState({ configurable: { thread_id: threadId } })
+  const messages: BaseMessage[] = state.values?.messages ?? []
+
+  if (index < 0 || index >= messages.length) {
+    throw new Error(`消息索引 ${index} 超出范围 (共 ${messages.length} 条)`)
+  }
+
+  const target = messages[index]
+  await agent.updateState(
+    { configurable: { thread_id: threadId } },
+    { messages: [new RemoveMessage({ id: target.id! })] }
+  )
 }

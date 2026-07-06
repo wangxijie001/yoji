@@ -6,14 +6,14 @@ import { initChatHistory } from './agent/utils/chat-history'
 import { initEmotionTable } from './agent/emotion/schema'
 import { initSkills } from './agent/skills'
 import { initTaskResultTable } from './agent/children-agent/async/task-result'
-// import { initLogger } from './utils/logger'
+import { initLogger } from './utils/logger'
 
 const COMPANION_DIR = join(app.getPath('userData'), 'companion')
 const AGENTS_MD_PATH = join(COMPANION_DIR, 'AGENTS.md')
 
 // 应用启动时一次性完成 companion 基础设施初始化
 export function initCompanion(): void {
-  // initLogger() // 接管 console，所有日志写入文件
+  initLogger() // 接管 console，所有日志写入文件
 
   mkdirSync(COMPANION_DIR, { recursive: true })
 

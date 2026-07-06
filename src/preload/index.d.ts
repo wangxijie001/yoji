@@ -57,9 +57,25 @@ interface Api {
   }
 }
 
+interface ElectronSpeechSession {
+  on(event: 'result', listener: (result: { text: string; isFinal: boolean; confidence?: number; timestampMs?: number }) => void): () => void
+  on(event: 'error', listener: (error: { code: string; message: string; details?: unknown }) => void): () => void
+  on(event: 'state', listener: (state: string) => void): () => void
+  start(options?: { locale?: string; interimResults?: boolean; continuous?: boolean }): Promise<void>
+  stop(): Promise<void>
+  abort(): Promise<void>
+  dispose(): Promise<void>
+}
+
+interface ElectronSpeechAPI {
+  getSpeechAvailability(): Promise<{ available: boolean; platform: string; reason?: string }>
+  createSpeechSession(): Promise<ElectronSpeechSession>
+}
+
 declare global {
   interface Window {
     electron: ElectronAPI
     api: Api
+    electronSpeech?: ElectronSpeechAPI
   }
 }
