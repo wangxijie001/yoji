@@ -7,7 +7,7 @@ import dayjs from 'dayjs'
 import { EmotionState } from '../../../shared/types'
 
 // 当前情绪
-let currentEmotion:string = '状态平稳'
+let currentEmotion:string = '状态平稳，毫无波澜，没有特殊情感，面对任何情况都保持平静的语气'
 // 获取当前情绪描述
 export const getCurrentEmotionInfo = () => currentEmotion
 
@@ -40,6 +40,8 @@ let get_weather_at = 0
 let last_weather_description = ''
 
 export async function changeEmotion(message: { role: string; content: string }[]) {
+  const isEmotionSystemEnabled = envConfig.get<boolean>('isEmotionSystemEnabled')
+  if (!isEmotionSystemEnabled) return
   const current = getCurrentEmotion()
   if (!current) return
   //当前情绪参数

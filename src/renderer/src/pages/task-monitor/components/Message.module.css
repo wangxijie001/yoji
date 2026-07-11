@@ -1,0 +1,155 @@
+.mainMessage {
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+
+    >div {
+        padding: 0 10px;
+    }
+
+
+
+    >div:first-child {
+        >span:first-child {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding-right: 16px;
+        }
+
+        i {
+            &:hover {
+                color: #bae0ff;
+            }
+        }
+
+        display: flex;
+        height: 36px;
+        align-items: center;
+        justify-content: space-between;
+        color: #fff;
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    .mianWindowBtn {
+        position: relative;
+
+        >div {
+            position: absolute;
+            top: 6px;
+            left: 2px;
+            font-size: 10px;
+            color: #fff;
+
+            >span {
+                padding: 4px 8px;
+                border-radius: 6px;
+                margin-right: 6px;
+                background-color: var(--default-hover-bg);
+                border: 1px solid var(--default-hover-bg);
+
+                &:hover {
+                    font-weight: bold;
+                }
+                &.activeType {
+                    color: #d3adf7;
+                    border-color: #d3adf7;
+                }
+            }
+        }
+    }
+
+    >div:last-child {
+        height: calc(100% - 36px);
+        width: 100%;
+        font-size: 10px;
+        padding-top: 18px;
+        color: #fff;
+        background-color: rgba(255, 255, 255, 0.1);
+        overflow-y: auto;
+        overflow-wrap: break-word;
+        word-wrap: break-word;
+        /* 兼容老旧浏览器（IE）的备选写法 */
+        white-space: normal;
+    }
+}
+
+.toolMessage {
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+
+    >div {
+        padding: 0 10px;
+    }
+
+    >div:first-child {
+        >span:first-child {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding-right: 16px;
+        }
+
+        i {
+            &:hover {
+                color: #bae0ff;
+            }
+        }
+
+        display: flex;
+        height: 36px;
+        align-items: center;
+        justify-content: space-between;
+        color: #ffffff;
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    >div:nth-child(2) {
+        font-size: 10px;
+        line-height: 20px;
+        color: #69b1ff;
+        margin-bottom: 6px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+
+    }
+
+    >div:last-child {
+        height: calc(100% - 56px);
+        font-size: 10px;
+        color: #ffffff;
+        background-color: rgba(255, 255, 255, 0.1);
+        overflow-y: auto;
+        overflow-wrap: break-word;
+        word-wrap: break-word;
+        /* 兼容老旧浏览器（IE）的备选写法 */
+        white-space: normal;
+
+        a {
+            color: #bae7ff;
+        }
+
+        img {
+            max-width: 100%;
+        }
+    }
+}
+
+.largeWapper {
+    width: 70vw !important;
+    height: 80vh !important;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 10px;
+    background: #222222;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}

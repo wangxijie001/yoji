@@ -129,6 +129,9 @@
                 >i{
                     font-size: 20px;
                     color: #999;
+                    &:hover {
+                        color: var(--default-link-text-color);
+                    }
                 }
             }
         }

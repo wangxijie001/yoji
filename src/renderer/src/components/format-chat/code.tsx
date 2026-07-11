@@ -57,7 +57,7 @@ export function CodeBlock({ children, ...props }: any) {
                 {copied ? '已复制' : '复制'}
             </button>
 
-            <pre {...props} style={{ margin: 0 }}>
+            <pre {...props} style={{ margin: 0,fontSize: '12px' }}>
                 {children}
             </pre>
         </div>

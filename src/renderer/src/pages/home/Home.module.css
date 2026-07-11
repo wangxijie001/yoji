@@ -52,8 +52,9 @@
 
 
   .left {
-    width: 200px;
+    width: 180px;
     position: relative;
+    flex-shrink: 0;
 
     >i {
       position: absolute;
@@ -73,6 +74,7 @@
     flex: 1;
     /* max-width: calc(100% - 200px); */
     position: relative;
+    overflow: auto;
      
      .dragArea {
        -webkit-app-region: drag;

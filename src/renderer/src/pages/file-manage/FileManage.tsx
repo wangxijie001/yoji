@@ -3,9 +3,9 @@ import styles from './FileManage.module.css'
 import fileApi from '@renderer/api/file'
 import { useEffect, useRef, useState } from 'react'
 import type { FileEntry } from '@shared/types'
-import { CaretRightOutlined, FileTextFilled, FileUnknownFilled, FolderOpenFilled } from '@ant-design/icons'
+import { CaretRightOutlined, FileTextFilled, FolderOpenFilled } from '@ant-design/icons'
 import { formatFileSize, formatTime } from '@renderer/utils/tool'
-// import { FilePreview } from '@renderer/components'
+import FilePreview from './components/FilePreview'
 
 const { confirm } = Modal;
 
@@ -127,10 +127,10 @@ const ParamShow = () => {
                         </div> :
                         <div key={item.key} className={`${styles.fileWapper} thin-scrollbar`}>
                             <div className={styles.filePreview}>
-                                <div className={styles.previewIcon}>
-                                    <div ><FileUnknownFilled style={{ fontSize: 50, color: '#6e6e6e' }} /></div>
-                                    <div>{fileData?.mimeType}</div>
-                                </div>
+                                 <FilePreview 
+                                    filePath={fileData?.fullPath || ''} 
+                                    fileName={fileData?.fileName} 
+                                    mimeType={fileData?.mimeType} />
                             </div>
                             <div className={styles.fileInfo}>
                                 <div>{fileData?.fileName}</div>

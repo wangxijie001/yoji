@@ -58,9 +58,9 @@ const agent = {
   toggleMiniWindow: () => window.api.agent.toggleMiniWindow(),
 
   /** 查询异步任务队列 */
-  async queryTaskQueue() {
-    const res = await window.api.agent.queryTaskQueue()
-    if (!res.ok) return { taskQueue: [] as any[], runningTaskQueue: [] as any[] }
+  async queryTaskQueue(taskId?: string) {
+    const res = await window.api.agent.queryTaskQueue(taskId)
+    if (!res.ok) return null
     return res.data!
   },
 

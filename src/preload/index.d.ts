@@ -31,7 +31,7 @@ interface Api {
     stop: () => void
     updateVersion: () => Promise<ApiResponse<void>>
     toggleMiniWindow: () => Promise<boolean>
-    queryTaskQueue: () => Promise<ApiResponse<{ taskQueue: unknown[]; runningTaskQueue: unknown[] }>>
+    queryTaskQueue: (taskId?: string) => Promise<ApiResponse<unknown>>
     cancelTask: (taskId: string) => Promise<ApiResponse<string>>
   }
   emotion: {
@@ -54,6 +54,9 @@ interface Api {
   }
   mcp: {
     save: (config: { key: string; name: string; description: string; uuid?: string; transport?: string; url?: string; command?: string; args?: string[]; isExposeToMain?: boolean; envPath?: string }) => Promise<ApiResponse<{ name: string; description: string }[]>>
+  }
+  browserWindow: {
+    open: (url: string) => Promise<{ ok: boolean }>
   }
 }
 

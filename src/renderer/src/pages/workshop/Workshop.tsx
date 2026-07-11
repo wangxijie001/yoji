@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import styles from './Workshop.module.css'
 import { childrenAgentConfig } from '@renderer/api/config'
 import { ChildAgentConfig } from '@shared/types'
-import { Button, message, Modal, Switch } from 'antd'
+import { Button, message, Modal, Switch, Tag } from 'antd'
 import ParamsView from './components/ParamsView'
 import agentApi from '@renderer/api/agent'
 import { v4 as uuidv4 } from 'uuid'
@@ -162,7 +162,12 @@ const Workshop = () => {
                   {item.systemPrompt}
                 </span>
               </div>
-
+              <div className={styles.listItem}>
+                <span>类型</span>
+                <span>
+                  <Tag color={item.isSystem ? 'cyan' : 'gold'}>{item.isSystem ? '系统' : '用户'}</Tag>
+                </span>
+              </div>
               <div className={styles.listItem}>
                 <span>启用</span>
                 <span>

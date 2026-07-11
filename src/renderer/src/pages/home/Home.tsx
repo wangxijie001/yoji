@@ -4,14 +4,20 @@ import Menu from './components/menu/Menu'
 import Image from './components/image/Image'
 import { useState, useEffect, useTransition } from 'react'
 import emotionApi from '@renderer/api/emotion'
-export type MiniWindowType = {
+import { envConfig } from '@renderer/api/config'
+type MiniWindowType = {
   isEnabled: boolean,
   chatFontSize: number
+}
+export type HomeContextType = {
+  miniWindow: MiniWindowType,
+  isEmotionSystemEnabled: boolean,
+  changeEmotionSystemEnabled: () => void
 }
 const Home = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const [emotionDisplay, setEmotionDisplay] = useState<{ c1: string; c2: string; display: { primary: string; secondary: string } }>({ c1: 'transparent', c2: 'transparent', display: { primary: '', secondary: '' } })
+  const [emotionDisplay, setEmotionDisplay] = useState<{ c1: string; c2: string; display: { primary: string; secondary: string } }>({ c1: 'transparent', c2: 'transparent', display: { primary: '平静', secondary: '平静' } })
   const [, startTransition] = useTransition()
   const [miniWindow, setMiniWindow] = useState<MiniWindowType>({ isEnabled: false, chatFontSize: 14 })
   const emotionColor = new Map<string, string>([
@@ -32,6 +38,7 @@ const Home = () => {
     ['忧虑', '#7A8B99'],
     ['心疼', '#C4958A'],
   ])
+  const [isEmotionSystemEnabled, setIsEmotionSystemEnabled] = useState<boolean>(false)
 
   // 根据情绪调节背景颜色
   const changeEmotionDisplay = (display: { primary: string; secondary: string }): void => {
@@ -62,6 +69,17 @@ const Home = () => {
     })
   }
 
+  // 切换情绪系统状态
+  const changeEmotionSystemEnabled = () => {
+    envConfig.set('isEmotionSystemEnabled', !isEmotionSystemEnabled)
+    setIsEmotionSystemEnabled(!isEmotionSystemEnabled)
+    if (isEmotionSystemEnabled) {
+      setEmotionDisplay({...emotionDisplay, display: { primary: '平静', secondary: '平静' } })
+    } else {
+      changeBackgroundByEmotion()
+    }
+  }
+
   // 固定窗口
   const changeMiniWindow = async () => {
     const enabled = await window.api.agent.toggleMiniWindow()
@@ -69,7 +87,10 @@ const Home = () => {
   }
 
   useEffect(() => {
-    changeBackgroundByEmotion()
+    envConfig.get('isEmotionSystemEnabled').then((enabled) => {
+      setIsEmotionSystemEnabled(!!enabled)
+      enabled && changeBackgroundByEmotion()
+    })
     const unsubscribe = emotionApi.onUpdated((emotion) => {
       if (emotion?.display) {
         try {
@@ -97,14 +118,14 @@ const Home = () => {
         <div className={styles.right}>
           <div className={styles.dragArea}></div>
           <div>
-            <Outlet context={{ miniWindow }} />
+            <Outlet context={{ miniWindow, isEmotionSystemEnabled, changeEmotionSystemEnabled }} />
           </div>
         </div>
       </div>
-      <div className={styles.background} style={{
+      {isEmotionSystemEnabled && <div className={styles.background} style={{
         '--c1': emotionDisplay.c1,
         '--c2': emotionDisplay.c2,
-      } as React.CSSProperties} />
+      } as React.CSSProperties} />}
       <i className={styles.description + ' ' + "iconfont icon-cocos-wenhao-xianxingyuankuang"} title={emotionDisplay.display.primary + ' ' + emotionDisplay.display.secondary} />
       {location.pathname === '/' && !miniWindow.isEnabled &&
         <Image emotion={emotionDisplay.display.primary} />}

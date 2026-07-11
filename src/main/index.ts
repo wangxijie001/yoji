@@ -25,7 +25,8 @@ function createWindow(): void {
     ...(process.platform !== 'darwin' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: false,
+      webSecurity: false
     }
   })
 

@@ -11,6 +11,12 @@
 
     .chartWapper {
         height: 400px;
+        position: relative;
+        >button {
+            position: absolute;
+            right: 10px;
+            z-index: 100;
+        }
     }
 
     .emotionWapper {

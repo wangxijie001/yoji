@@ -40,7 +40,8 @@ src/main/
 │   ├── http.ts            # HTTP IPC
 │   ├── mcp.ts             # mcp:testConnection / mcp:updateMcpStoreVersion
 │   ├── tts.ts             # tts:getEnabled / tts:setEnabled / tts:toggle
-│   └── broadcast.ts       # 通用广播工具（主→渲染主动推送）
+│   ├── broadcast.ts       # 通用广播工具（主→渲染主动推送）
+│   └── browser-window.ts  # browserWindow:open（额外开无框窗口加载指定地址/应用内路由）
 ├── mcp/                   # MCP 客户端管理（预留）
 └── agent/                 # AI Agent 核心
     ├── index.ts           # chat / chatStream（对话入口 + 流式处理）
@@ -59,9 +60,10 @@ src/main/
     │   ├── tool-error-handler.ts  # 工具调用容错
     │   ├── file-read-guard.ts     # 文件读取拦截：PDF→pdf-parse 提取文字、二进制拦截、兼容 DeepSeek/Qwen
     │   └── summarization.ts       # 摘要中间件
-    ├── children-agent/    # MCP 执行子 Agent
+    ├── children-agent/    # 子 Agent：async/（异步任务队列 + 事件循环 executor）、sync/（同步子 Agent）、agent-list、mcp-execute-agent
+    ├── task-monitor/      # 任务运行信息缓存（updateTaskRunningInfo 增量写入 / queryTaskQueue 查询；主对话与异步任务共用）
     └── utils/             # checkpoint 清理（含 deleteMessageByIndex 精确删消息）、chat-history、TTS 播报、
-                            # token-logger、embedding、speech（macOS 原生语音识别）
+                            # token-logger、embedding、speech（macOS 原生语音识别）、tem-file-manage（临时文件读写）
 ```
 
 ### 2. 预加载脚本 (`src/preload/`)
@@ -80,6 +82,7 @@ src/preload/
     ├── http.ts            # HTTP 请求
     ├── mcp.ts             # testConnection / updateMcpStoreVersion
     ├── tts.ts             # getEnabled / setEnabled / toggle / onEnabledChanged
+    ├── browser-window.ts  # open（额外开窗口加载指定地址/路由）
     └── listener.ts        # createListener<T>() 通用监听器工厂
 ```
 
@@ -100,7 +103,8 @@ src/renderer/
     │   ├── param-show/      # 参数展示页
     │   ├── diary/           # 日记页
     │   ├── file-manage/     # 文件管理页（导出/导入记忆体）
-    │   └── mcp-manage/      # MCP 服务器管理页（添加/测试/启用/卸载）
+    │   ├── mcp-manage/      # MCP 服务器管理页（添加/测试/启用/卸载）
+    │   └── task-monitor/    # 任务监控页（任务列表 + 工具调用/思考/输出详情，轮询 queryTaskQueue）
     ├── components/          # 通用组件（FormatChat、echarts 等）
     ├── api/                 # 渲染进程 API 封装层（处理 error toast）
     │   ├── agent.ts
@@ -109,6 +113,7 @@ src/renderer/
     │   ├── file.ts
     │   ├── mcp.ts
     │   ├── tts.ts
+    │   ├── browser-window.ts
     │   └── server.ts
     └── assets/              # CSS、SVG、iconfont 等静态资源
 ```

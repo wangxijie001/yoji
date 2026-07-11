@@ -15,7 +15,7 @@ export interface ModelConfig {
 
 // 根据用户配置创建模型实例，屏蔽不同供应商的创建差异
 export function createModel(config: ModelConfig): ChatOpenAI | ChatDeepSeek {
-  const { provider, apiKey, model, baseURL, temperature = 0.7 } = config
+  const { provider, apiKey, model, baseURL, temperature = 0.7, modelKwargs = {} } = config
 
   switch (provider) {
     case 'deepseek': {
@@ -26,7 +26,8 @@ export function createModel(config: ModelConfig): ChatOpenAI | ChatDeepSeek {
         // callbacks: [tokenLogger],  // 诊断开启
         modelKwargs: {
           // 禁用思考模式，否则 tool_choice 会冲突报 400
-          thinking: { type: "disabled" }
+          thinking: { type: "disabled" },
+          ...modelKwargs
         }
       })
       // 压低 maxInputTokens，让摘要中间件按此计算触发阈值
@@ -34,7 +35,7 @@ export function createModel(config: ModelConfig): ChatOpenAI | ChatDeepSeek {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const realProfile = (m as any).profile
       Object.defineProperty(m, 'profile', {
-        get: () => ({ ...realProfile, maxInputTokens: 50000}),
+        get: () => ({ ...realProfile, maxInputTokens: 100000}),
         configurable: true,
       })
       return m
@@ -53,7 +54,7 @@ export function createModel(config: ModelConfig): ChatOpenAI | ChatDeepSeek {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const realProfile = (m as any).profile
       Object.defineProperty(m, 'profile', {
-        get: () => ({ ...realProfile, maxInputTokens: 50000 }),
+        get: () => ({ ...realProfile, maxInputTokens: 100000}),
         configurable: true,
       })
       return m

@@ -1,33 +1,53 @@
-import { tool } from "langchain";
-import dayjs from 'dayjs'
-import { z } from "zod";
 import { searchMemories, fetchRawMessages, queryMessageDatabase } from './search-memories'
 import { searchEmotionLog } from './search-emotion-log'
 import { internetSearch } from './internet-search'
-import { uninstallMcpServer, listMcpServers, installMcpServer } from "./mcp-manage";
-import { cancelAsyncTask, pushAsyncTask, getAsyncTaskAgent, getAsyncTaskResult } from '../children-agent/async/tools'
+import { uninstallMcpServer, listMcpServers, installMcpServer } from './mcp-manage'
+import {
+  cancelAsyncTask,
+  pushAsyncTask,
+  getAsyncTaskAgent,
+  getAsyncTaskResult
+} from '../children-agent/async/tools'
+import { previewHtml } from './preview-html'
 import { mcpConfig } from '../../config'
 import type { McpConfig } from '../../../shared/types'
 import mcpUtil from '../mcp'
 import { MultiServerMCPClient } from '@langchain/mcp-adapters'
+import { macosReadUI } from './software -control/macos-read-ui'
+import {
+  macosLaunchApp,
+  macosListApps,
+  macosClick,
+  macosTypeText,
+  macosPressKey,
+  macosQuitApp
+} from './software -control/macos-app-control'
 
 let mainMcpClient: MultiServerMCPClient | null = null
+export const toolsStore = {
+  search_memories: searchMemories,
+  fetch_raw_messages: fetchRawMessages,
+  query_message_database: queryMessageDatabase,
+  search_emotion_log: searchEmotionLog,
+  internet_search: internetSearch,
+  list_mcp_servers: listMcpServers,
+  install_mcp_server: installMcpServer,
+  uninstall_mcp_server: uninstallMcpServer,
+  push_async_task: pushAsyncTask,
+  get_async_task_agent: getAsyncTaskAgent,
+  get_async_task_result: getAsyncTaskResult,
+  abort_async_task: cancelAsyncTask,
+  preview_html: previewHtml,
 
-export const queryCurrentTime = tool(
-    async ({}:{}) => {
-        try {
-            return '当前时间：' +  dayjs().format("YYYY-MM-DD HH:mm:ss");
-
-        } catch (error) {
-            return JSON.stringify({ error: `查询当前时间失败: ${error}` });
-        }
-    },
-    {
-        name: "query_current_time",
-        description: "问题涉及时间时调用该工具，查询当前时间，返回当前时间",
-        schema: z.object({}),
-    }
-);
+  //实验性工具
+  macos_read_ui: macosReadUI,
+  macos_list_apps: macosListApps,
+  macos_launch_app: macosLaunchApp,
+  macos_click: macosClick,
+  macos_type_text: macosTypeText,
+  macos_press_key: macosPressKey,
+  macos_quit_app: macosQuitApp
+}
 
 // 获取注入主 Agent 的 MCP 工具（isExposeToMain + isEnabled），维持长连接
 async function getMainMcpTools(): Promise<any[]> {
@@ -38,7 +58,7 @@ async function getMainMcpTools(): Promise<any[]> {
   }
 
   const allMcp = (mcpConfig.getAll() || {}) as Record<string, McpConfig>
-  const exposed = Object.values(allMcp).filter(m => m.isExposeToMain && m.isEnabled)
+  const exposed = Object.values(allMcp).filter((m) => m.isExposeToMain && m.isEnabled)
   if (exposed.length === 0) return []
 
   const serverConfigs: Record<string, any> = {}
@@ -50,20 +70,21 @@ async function getMainMcpTools(): Promise<any[]> {
   return mainMcpClient.getTools()
 }
 
-export const toolList = [ queryCurrentTime,
-    searchMemories, fetchRawMessages, queryMessageDatabase,
-    searchEmotionLog, internetSearch ,
-    listMcpServers,
-    installMcpServer,
-    uninstallMcpServer,
-    pushAsyncTask,
-    getAsyncTaskAgent,
-    getAsyncTaskResult,
-    cancelAsyncTask,
-];
+export const mainAgentToolList = [
+  searchMemories,
+  fetchRawMessages,
+  queryMessageDatabase,
+  searchEmotionLog,
+  internetSearch,
+  pushAsyncTask,
+  getAsyncTaskAgent,
+  getAsyncTaskResult,
+  cancelAsyncTask,
+  previewHtml
+]
 
 // 获取完整工具列表（含注入主 Agent 的 MCP 工具）
 export async function getFullToolList(): Promise<any[]> {
   const mcpTools = await getMainMcpTools().catch(() => [])
-  return [...toolList, ...mcpTools]
+  return [...mainAgentToolList, ...mcpTools]
 }

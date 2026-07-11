@@ -53,8 +53,8 @@ export const agent = {
     ipcRenderer.invoke('window:toggleMini') as Promise<boolean>,
 
   /** 查询异步任务队列 */
-  queryTaskQueue: () =>
-    ipcRenderer.invoke('task:queryQueue') as Promise<ApiResponse<{ taskQueue: unknown[]; runningTaskQueue: unknown[] }>>,
+  queryTaskQueue: (taskId?: string) =>
+    ipcRenderer.invoke('task:queryQueue', taskId) as Promise<ApiResponse<{ taskQueue: unknown[]; runningTaskQueue: unknown[] }>>,
 
   /** 取消异步任务 */
   cancelTask: (taskId: string) =>

@@ -10,9 +10,11 @@ export type ConfigName = 'env' | 'model' | 'mcp' | 'childrenAgent'
 // 环境配置文件类型
 export type EnvConfig = { 
    activeProvider: ModelProvider,//当前激活的模型提供者
-   agentVersion: string,//MCP store存储版本号
+   agentVersion: string,//agent 版本号,每次修改后需要更新 触发agent 重启
    latestUserMessage: {createdAt: number, content: string},//最新用户消息内容
    isProactiveChatEnabled: boolean,//是否开启主动聊天
+   isEmotionSystemEnabled: boolean,//是否开启情绪系统
+   isDeepThinkEnabled: boolean,//是否开启深度思考
 }
 //支持的模型种类
 export type ModelProvider = 'openai' | 'deepseek'
@@ -45,6 +47,7 @@ export type ChildAgentConfig = {
   version: string// 版本号,每次修改后需要更新
   description: string // 描述信息
   systemPrompt: string // agent 系统提示词
+  tools?: string[] // 工具列表
   mcpList:{key?:string,uuid:string,name?:string,description?:string}[] // MCP 服务器 uuid列表
   isEnabled: boolean // 是否开启
   createdAt?: number // 创建时间
@@ -115,4 +118,17 @@ export interface FileEntry {
   modifiedAt: number     // 修改时间，毫秒时间戳
   fullPath: string       // 完整绝对路径
   mimeType?: string      // MIME 类型（仅文件有值）
+}
+
+// 任务运行信息
+export type TaskRunningInfo = {
+  taskId: string
+  params: string
+  agentId: string
+  status: 'waiting' | 'running' | 'completed' | 'stopped' | 'failed'
+  toolsMessage: { id: string; name: string; params: string; content: string }[] 
+  thinkMessage: string
+  mainMessage: string
+  createdAt: number | null
+  endTime: number | null
 }

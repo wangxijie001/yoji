@@ -84,14 +84,9 @@
                 min-height: 200px;
                 border: #e5e5e5 1px dashed;
                 border-radius: 10px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                text-align: center;
+                position: relative;
+                overflow: auto;
 
-                .previewIcon {
-                    color: #6e6e6e;
-                }
             }
 
             .fileInfo {

@@ -1,5 +1,5 @@
 import styles from "./AIChat.module.css";
-import { Button, Drawer, message, Modal, Spin } from "antd";
+import { Button, message, Modal } from "antd";
 import { useEffect, useRef, useState, } from "react";
 import { useOutletContext } from "react-router-dom";
 import FormatChat from "../../components/format-chat/index";
@@ -10,8 +10,10 @@ import { ChatMessage, MessageHistoryQuery } from "@shared/types";
 import InfiniteScroll from 'react-infinite-scroller'
 import dayjs from 'dayjs'
 import proactiveChat from "./proactive-chat";
-import { MiniWindowType } from "../home/Home";
+import { HomeContextType } from "../home/Home";
 import { useVoiceDialogue } from './voice-dialogue'
+import browserWindowApi from "@renderer/api/browser-window";
+import { envConfig } from "@renderer/api/config";
 
 
 
@@ -27,15 +29,13 @@ type MessageItem = {
 type SendMessageEvent = {
     event?: React.KeyboardEvent<HTMLTextAreaElement>;
     humanMessage?: string;
-    // interruptType?: ChatMessage['interruptDecision'];
-    // interruptMessage?: string;
     interruptType?: ChatMessage['interruptDecision'];
     interruptMessage?: string;
     assistantMessage?: string;// 系统提示ai助手的消息
 }
 
 const AiChat = () => {
-    const { miniWindow } = useOutletContext<{ miniWindow: MiniWindowType }>()
+    const { miniWindow } = useOutletContext<HomeContextType>()
     const [inputMessage, setInputMessage] = useState("");
     const [messageList, setMessageList] = useState<MessageItem[]>([]);
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -45,13 +45,12 @@ const AiChat = () => {
     const unreadNotificationsRef = useRef<{ timer: ReturnType<typeof setTimeout> | null, message: string[] }>({ timer: null, message: [] })//异步任务执行通知延时器
     const currentAiIdRef = useRef<string>(''); // 当前正在流式输出的 AI 消息 ID
     const [hasMoreHistory, setHasMoreHistory] = useState(true)
-    const [ttsEnabled, setTtsEnabled] = useState(true)
+    const [ttsEnabled, setTtsEnabled] = useState(false)
     const [isProactiveChatEnabled, setIsProactiveChatEnabled] = useState(false)
+    const [isDeepThinkEnabled, setIsDeepThinkEnabled] = useState(false)
     const [interruptInfo, setInterruptInfo] = useState<{ open: boolean, info?: string; message?: string }>({ open: false })
 
-    const [isShowCurExecLogDrawer, setIsShowCurExecLogDrawer] = useState<boolean>(false)
-    const [curExecLog, setCurExecLog] = useState<{ isLoading: boolean, log: string }>({ isLoading: false, log: '' })
-    const [asyncTaskQueue, setAsyncTaskQueue] = useState<any[]>([])
+    const [isRunningChat, setIsRunningChat] = useState<boolean>(false)
 
     // 语音交互
     const {
@@ -94,12 +93,12 @@ const AiChat = () => {
         //监听异步后台任务完成通知
         const unsubBackgroundTaskCompleted = window.api.agent.onBackgroundTaskCompleted(({ result }) => {
             onProactiveNotice(result)
-            // 异步任务队列更新
-            isShowCurExecLogDrawer && queryAsyncTaskQueue()
         })
 
         // 启动主动聊天定时器,并获取当前系统是否允许主动聊天
         proactiveChat.initProactiveConfig(sendMessage, setIsProactiveChatEnabled)
+        // 初始化深度思考状态
+        changeDeepThinkEnabled()
 
         return () => {
             unsubTts();
@@ -142,28 +141,9 @@ const AiChat = () => {
     };
 
     const changeOpenCurExecLog = () => {
-        const { isFinish, illation } = streamRef.current
-        setIsShowCurExecLogDrawer(!isShowCurExecLogDrawer)
-        setCurExecLog({ isLoading: !isFinish, log: illation })
-        queryAsyncTaskQueue()
+        browserWindowApi.open('/task-monitor')
     }
 
-    // 获取异步任务队列
-    const queryAsyncTaskQueue = () => {
-        agentApi.queryTaskQueue().then((res) => {
-            const { taskQueue, runningTaskQueue } = res || {}
-            const _taskQueue = taskQueue.map(item => ({ ...item, status: 'waiting', statusDesc: '等待中' }))
-            const _runningTaskQueue = runningTaskQueue.map(item => ({ ...item, status: 'running', 'statusDesc': '运行中' }))
-            setAsyncTaskQueue([..._taskQueue || [], ..._runningTaskQueue || []])
-        })
-    }
-
-    //取消异步任务
-    const cancelAsyncTask = (index: number) => {
-        agentApi.cancelTask(asyncTaskQueue[index].taskId).then(() => {
-            queryAsyncTaskQueue()
-        })
-    }
 
     // 加载更多消息
     const loadMore = () => {
@@ -205,7 +185,7 @@ const AiChat = () => {
         if (timerRef.current) {
             clearInterval(timerRef.current);
         }
-        streamRef.current = { message: "", illation: `对话时间：${new Date().toLocaleString()}\n\n`, isFinish: false };
+        streamRef.current = { message: "", illation: '', isFinish: false };
 
         // 定时器：从 streamRef 读取增量并渲染
         timerRef.current = setInterval(() => {
@@ -216,11 +196,12 @@ const AiChat = () => {
             setMessageList((prev) =>
                 prev.map((item) =>
                     item.id === aiId
-                        ? { ...item, content: message, illation: '', loading: !isFinish }
+                        ? { ...item, content: message, illation:isDeepThinkEnabled ? illation :  '', loading: !isFinish }
                         : item,
                 ),
             );
-            setCurExecLog({ isLoading: !isFinish, log: illation })
+
+            setIsRunningChat(!isFinish)
 
             scrollToBottom()
         }, 200);
@@ -247,7 +228,7 @@ const AiChat = () => {
                         streamRef.current.message += content;
                     } else if (type === 'requires_approval') {
                         setInterruptInfo({ open: true, info: content, message: '' })
-                    } else {
+                    } else if(type === 'think') {
                         streamRef.current.illation = streamRef.current.illation + content;
                     }
                 },
@@ -292,12 +273,33 @@ const AiChat = () => {
 
     //切换语音交互状态
     const changeVoiceDialogueEnabled = () => {
-        if(isListeningVoice) {
+        if (isListeningVoice) {
             stopListening()
             return
         }
         message.success('语音对话已开启,说出 “小优” 即可唤醒')
         startListening()
+    }
+
+    //切换深度思考状态 不传参数时根据配置文件获取当前状态
+    const changeDeepThinkEnabled = async (enabled?: boolean) => {
+        if(enabled === undefined) {
+            const _enabled = (await envConfig.get<boolean>('isDeepThinkEnabled')) || false
+            setIsDeepThinkEnabled(_enabled)
+            return
+        }
+
+        setIsDeepThinkEnabled(enabled)
+
+        if (enabled) {
+           envConfig.set('isDeepThinkEnabled', true)
+           message.success('深度思考已开启')
+        } else {
+            envConfig.set('isDeepThinkEnabled', false)
+            message.success('深度思考已关闭')
+        }
+        // 更新agent版本,触发重新加载agent
+        agentApi.updateVersion()
     }
 
     //主进程需要ai助手处理的消息
@@ -361,7 +363,11 @@ const AiChat = () => {
                                 {item.role === "user" ? (
                                     <div className={styles.messageBubble}><FormatChat fontSize={`${miniWindow.chatFontSize || 14}px`} message={item.content} /></div>
                                 ) : (
-                                    <FormatChat message={item.content} fontSize={`${miniWindow.chatFontSize || 14}px`} illation={item.illation} />
+                                    <FormatChat 
+                                        message={item.content} 
+                                        fontSize={miniWindow.chatFontSize ? miniWindow.chatFontSize + 'px' : '14px'} 
+                                        illationFontSize={miniWindow.chatFontSize ? miniWindow.chatFontSize - 2 + 'px' : '12px'}
+                                        illation={item.illation} />
                                 )}
                                 {(item.loading && (index === messageList.length - 1)) && (
                                     <span className={styles.dotWapper}>
@@ -397,7 +403,7 @@ const AiChat = () => {
                         />
                         <i
                             className="iconfont icon-cocos-a-shujujianguan1"
-                            style={{ color: isShowCurExecLogDrawer ? 'var(--default-link-text-color)' : '' }}
+                            // style={{ color: isShowCurExecLogDrawer ? 'var(--default-link-text-color)' : '' }}
                             onClick={() => changeOpenCurExecLog()}
                             title={'当前运行状态'}
                         />
@@ -415,16 +421,22 @@ const AiChat = () => {
                                 title={isListeningVoice ? '语音对话已开启(说出 ‘小优’ 即可唤醒)' : '语音对话已关闭'}
                             />
                         )}
+                        <i
+                            className="iconfont icon-cocos-shendusikao"
+                            style={{ color: isDeepThinkEnabled ? 'var(--default-link-text-color)' : '' }}
+                            onClick={() => changeDeepThinkEnabled(!isDeepThinkEnabled)}
+                            title={isDeepThinkEnabled ? '深度思考已开启' : '深度思考已关闭'}
+                        />
 
                     </div>
-                    {inputMessage && !curExecLog.isLoading && (
+                    {inputMessage && !isRunningChat && (
                         <Button
                             type="primary"
                             onClick={() => sendMessage({})}
                             icon={<i className="iconfont icon-cocos-arrowTop-fill" style={{ fontSize: 20 }} />}
                         />
                     )}
-                    {curExecLog.isLoading && (
+                    {isRunningChat && (
                         <Button
                             type="primary"
                             onClick={() => { agentApi.stop() }}
@@ -453,49 +465,8 @@ const AiChat = () => {
                     </div>
                 </div>
             </Modal>
-            <Drawer
-                size='50%'
-                placement='right'
-                onClose={() => changeOpenCurExecLog()}
-                open={isShowCurExecLogDrawer}
-                title={'执行日志'}
-                mask={false}
-                style={{ background: 'var(--default-drawer-bg)' }}
-                styles={{ header: { padding: ' 8px 16px', border: 'none' }, body: { padding: ' 0 10px 0 20px' } }}
-
-            >
-                <div className={`${styles.paramsDsc} thin-scrollbar`}>
-                    <div className={styles.taskQueue}>
-                        {asyncTaskQueue.map((item, index) => (
-                            <div key={item.taskId} className={styles.taskItem}>
-                                <span>
-                                    <div style={{ fontWeight: 'bold' }}>{item.taskId}</div>
-                                    <div>{(item.params || '').length > 90 ? item.params.substring(0, 90) + '...' : item.params}</div>
-                                    <div style={{ color: item.status === 'running' ? 'var(--default-running-text-color)' : '#999' }}>{item.statusDesc}</div>
-                                </span>
-                                <span>
-                                    <i
-                                        className="iconfont icon-cocos-zhongzhi"
-                                        style={{ fontSize: 20 }}
-                                        title="取消任务"
-                                        onClick={() => cancelAsyncTask(index)}
-                                    />
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                    <div>
-                        <FormatChat message={curExecLog.log} fontSize="12px" />
-                        {curExecLog.isLoading && (
-                            <Spin />
-                        )}
-                    </div>
-                    <div ref={curExecLogScrollRef} />
-                </div>
-
-            </Drawer>
-            { isRecordingVoice && <div className={styles.recordingVoice}>
-                <i className={`iconfont icon-cocos-maikefeng`}/>
+            {isRecordingVoice && <div className={styles.recordingVoice}>
+                <i className={`iconfont icon-cocos-maikefeng`} />
             </div>}
         </main>
     );

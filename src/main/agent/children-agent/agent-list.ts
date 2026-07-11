@@ -10,17 +10,14 @@ export type ChildAgentResponse = {
     version: string// 版本号,每次修改后需要更新
     description: string // 描述信息
     systemPrompt: string // agent 系统提示词
+    tools?: string[] // 工具列表
     mcpList:Record<string,McpConfig['config']> // MCP 服务器配置列表
 }
 
 
-// 默认智能体列表
-// const defaultAgentList = new Map<string, ChildAgentConfig>()
-
 // 获取智能体配置
 export const getAgent = (uuid: string):{success: boolean,md5?: string, agent?: ChildAgentResponse, error?: string} => {
 
-  // const agent = defaultAgentList.get(uuid)
   const agent = childrenAgentConfig.get(uuid) as ChildAgentConfig
 
   if(!agent){

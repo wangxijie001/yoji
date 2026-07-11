@@ -101,25 +101,22 @@ const SENTENCE_RE = /^([\s\S]*?[。！？\n])\s*/
 /** 句子级清洗：完整句子 → 适合朗读的纯文本 */
 function cleanSentence(text: string): string {
   const cleaned = text
-    // 斜体 / 删除线 / 行内代码 → 丢弃内容和标记
-    .replace(/\*([^*]+)\*/g, '')
-    .replace(/_([^_]+)_/g, '')
-    .replace(/~~([^~]+)~~/g, '')
-    .replace(/`([^`]+)`/g, '')
+    // 斜体 *text* → 保留 text
+    .replace(/\*([^*]+)\*/g, '$1')
+    // 斜体 _text_ → 保留 text
+    .replace(/_([^_]+)_/g, '$1')
+    // 删除线 ~~text~~ → 保留 text
+    .replace(/~~([^~]+)~~/g, '$1')
+    // 行内代码 `code` → 保留 code（AI 回复中的工具名/文件名有用）
+    .replace(/`([^`]+)`/g, ' $1 ')
     // 链接 [text](url) → 保留 text
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
     // 图片 ![](url) → 丢弃
     .replace(/!\[[^\]]*\]\([^)]+\)/g, '')
     // 加粗 **text** → 保留 text
     .replace(/\*\*([^*]+)\*\*/g, '$1')
-    // 标题 / 引用 / 列表标记
-    // .replace(/^#{1,6}\s+/gm, '')
-    // .replace(/^>\s+/gm, '')
-    // .replace(/^[-*+]\s+/gm, '')
-    // 剩余零散符号
+    // 残留符号 → 空格
     .replace(/[\*\_\~\`\#\[\]]/g, ' ')
-    // 括号及其内容
-    .replace(/[（(][^）)]*[）)]/g, '')
     // 空白字符 → 逗号停顿
     .replace(/\s+/g, '，')
 

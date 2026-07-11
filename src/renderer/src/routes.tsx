@@ -7,6 +7,7 @@ import Diary from './pages/diary/Diary'
 import FileManage from './pages/file-manage/FileManage'
 import McpManage from './pages/mcp-manage/McpManage'
 import Workshop from './pages/workshop/Workshop'
+import TaskMonitor from './pages/task-monitor/TaskMonitor'
 
 // 路由配置——后续新增页面只需加一条记录，导航和路由自动同步
 const routes: (RouteObject & { label: string })[] = [
@@ -47,6 +48,12 @@ const routes: (RouteObject & { label: string })[] = [
       }
     ]
   },
+  {
+    path: '/task-monitor',
+    element: <TaskMonitor />,
+    label: '任务监控',
+  },
+
 ]
 
 export default routes

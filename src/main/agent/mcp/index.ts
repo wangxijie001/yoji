@@ -51,7 +51,6 @@ export const createMcpClient = (config: McpServerConfig): MultiServerMCPClient =
       return [k, v]
     })
   )
-
   return new MultiServerMCPClient({
     mcpServers: mcpServers as any,
     prefixToolNameWithServerName: true,
@@ -60,8 +59,8 @@ export const createMcpClient = (config: McpServerConfig): MultiServerMCPClient =
 }
 
 //测试链接
-export const testConnection = async (serverConfig: any): Promise<{ ok: boolean; data?: { name: string; description: string }[]; error?: string }> => {
-  const client = createMcpClient({ _test: serverConfig })
+export const testConnection = async (key: string, serverConfig: any): Promise<{ ok: boolean; data?: { name: string; description: string }[]; error?: string }> => {
+  const client = createMcpClient({ [key]: serverConfig })
   try {
     let timeoutId: ReturnType<typeof setTimeout>
     const tools = await Promise.race([
@@ -98,7 +97,7 @@ export const saveMcpConfig = async (config: {
     ? { transport: 'stdio' as const, command: command || 'npx', args: args || [], ...(envPath ? { env: { PATH: envPath } } : {}) }
     : { transport: (transport || 'sse') as 'sse' | 'http', url: url || '' }
 
-  const connResult = await testConnection(serverConfig)
+  const connResult = await testConnection(key, serverConfig)
   if (!connResult.ok) return connResult
 
   // 保存配置

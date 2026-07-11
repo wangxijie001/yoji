@@ -6,6 +6,9 @@ import dayjs from 'dayjs'
 import FormatChat from '@renderer/components/format-chat'
 import { Button, Drawer } from 'antd'
 import { EmotionState } from '@shared/types'
+import { useOutletContext } from 'react-router-dom'
+import { HomeContextType } from '../home/Home'
+
 
 type HormoneKey = 'dopamine' | 'serotonin' | 'gaba' | 'cortisol' | 'adrenaline' | 'oxytocin' | 'endorphin' | 'melatonin'
 
@@ -26,6 +29,7 @@ const CHINESE_LABELS: Record<HormoneKey, [string, string,string]> = {
 }
 
 const ParamShow = () => {
+    const { isEmotionSystemEnabled, changeEmotionSystemEnabled } = useOutletContext<HomeContextType>()
     const [option, setOption] = useState<any>({
         title: { text: '激素水平' },
         series: [],
@@ -34,6 +38,7 @@ const ParamShow = () => {
     const [emotionLog, setEmotionLog] = useState<EmotionState[]>([])
     const [currentEmotion, setCurrentEmotion] = useState<string>('')
     const [openLog, setOpenLog] = useState<boolean>(false)
+
 
     useEffect(() => {
         loadEmotionLog()
@@ -67,15 +72,19 @@ const ParamShow = () => {
             })
         })
     }
+    
+
 
     return (
         <main className={styles.wapper}>
             <div className={styles.chartWapper}>
+                <Button type='primary' ghost onClick={changeEmotionSystemEnabled}>{isEmotionSystemEnabled ? '关闭' : '开启'}情绪系统</Button>
                 <StackedLine option={option} />
             </div>
             <hr />
             <div className={styles.emotionWapper}>
                 <h3>当前情绪</h3>
+                
                 <Button
                     type='primary'
                     ghost
@@ -83,7 +92,7 @@ const ParamShow = () => {
                     onClick={() => setOpenLog(true)}
                 />
                 <div>
-                    <FormatChat message={currentEmotion} />
+                    {isEmotionSystemEnabled ? <FormatChat message={currentEmotion} /> : "状态平稳，毫无波澜，没有特殊情感"}
                 </div>
             </div>
             <Drawer

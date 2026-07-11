@@ -9,6 +9,9 @@ import { changeEmotion, getCurrentEmotionInfo } from './emotion'
 import { tts } from './utils/tts'
 import { createAgent } from './create-agent'
 import { envConfig } from '../config'
+import dayjs from 'dayjs'
+import { updateTaskRunningInfo } from './task-monitor'
+import { v4 as uuidv4 } from 'uuid'
 
 
 // 固定线程 ID——整个应用只有这一条持续对话
@@ -41,6 +44,7 @@ export async function chatStream(
   signal?: AbortSignal
 ): Promise<void> {
   const agent = await createAgent(config)
+  const _taskUuid = uuidv4()
   let userMessage = ''
   /** 中断审批决策，仅 role='user' 且有未处理中断时传 */
   let interruptDecision: ChatMessage['interruptDecision'] | undefined = undefined
@@ -59,6 +63,17 @@ export async function chatStream(
         interruptDecision = m.interruptDecision
         break
     }
+      updateTaskRunningInfo('main:' + _taskUuid, {
+        taskId: 'main:' + _taskUuid,
+        params:JSON.stringify(m),
+        agentId:"yoji",
+        status: 'running',
+        toolsMessage: [],
+        thinkMessage: '',
+        mainMessage: '',
+        createdAt: Date.now(),
+        endTime: null
+      })
     return _message
   })
 
@@ -102,8 +117,9 @@ export async function chatStream(
 
     const emotion = getCurrentEmotionInfo()
     if (emotion) {
+      const currentTime = dayjs().format("YYYY-MM-DD HH:mm:ss")
       const _systemMessage = new HumanMessage({
-        content: `我是你的情绪提示，你当前的情绪：${emotion}`
+        content: `我是你的情绪提示，你当前的情绪：${emotion}，当前时间：${currentTime}`
       })
       langchainMessages.unshift(_systemMessage)
     }
@@ -120,6 +136,7 @@ export async function chatStream(
     const stream: any = await agent.stream(streamInput, streamConfig)
     let totalMessages = ''
     for await (const [namespace, mode, data] of stream) {
+      const isSubAgent = namespace && namespace.length > 1
       // 1. 处理流式输出：思考过程与最终答案
       if (mode === 'messages') {
         const msg = Array.isArray(data) ? data[0] : data
@@ -128,20 +145,23 @@ export async function chatStream(
         if (msg.additional_kwargs?.reasoning_content) {
           const data = { content: msg.additional_kwargs.reasoning_content, type: 'think' }
           callbacks.onChunk(data)
+          updateTaskRunningInfo('main:' + _taskUuid, {thinkMessage:data.content})
         }
 
         // 实时打印最终答案
         if (msg.type === 'ai' && !!msg.content) {
           //子agent输出
           if (namespace && namespace.length > 1) {
-            const data = { content: msg.content, type: 'think' }
-            callbacks.onChunk(data)
+            // const data = { content: msg.content, type: 'think' }
+            // callbacks.onChunk(data)
+            //  updateTaskRunningInfo('main:' + _taskUuid, {thinkMessage:data.content})
           } else {
             const data = { content: msg.content, type: 'result' }
             totalMessages += msg.content
             //语音播报
             if (tts.isEnabled()) tts.feed(msg.content as string)
             callbacks.onChunk(data)
+            updateTaskRunningInfo('main:' + _taskUuid, {mainMessage:data.content})
           }
         }
       }
@@ -173,7 +193,9 @@ export async function chatStream(
                   }
                 } catch (error) {}
               }
+
               callbacks.onChunk(data)
+              updateTaskRunningInfo('main:' + _taskUuid, { toolsMessage: {id: msg.tool_call_id,content: msg.content} })
             }
           }
         }
@@ -188,7 +210,8 @@ export async function chatStream(
                   content: `\n\n调用${tc.name}, 参数：${JSON.stringify(tc.args)}\n\n`,
                   type: 'toolparams'
                 }
-                callbacks.onChunk(data)
+                callbacks.onChunk(data)               
+                updateTaskRunningInfo('main:' + _taskUuid, { toolsMessage: {id: tc.id, name:tc.name, params: JSON.stringify(tc.args)} })
               }
             }
           }
@@ -218,12 +241,14 @@ export async function chatStream(
             //语音播报
             if (tts.isEnabled()) tts.feed('等待确认。')
             callbacks.onChunk({ content: '等待确认。', type: 'result' })
+            updateTaskRunningInfo('main:' + _taskUuid, { mainMessage:"工具执行，等待确认。",status:'stopped' })
           }
         }
       }
     }
 
     callbacks.onDone()
+    updateTaskRunningInfo('main:' + _taskUuid, { status:'completed' })
     //播放剩余半句
     tts.flush()
     //清理checkpoint快照
@@ -250,6 +275,7 @@ export async function chatStream(
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') {
       callbacks.onDone()
+      updateTaskRunningInfo('main:' + _taskUuid, { mainMessage:'用户取消任务', status:'stopped' })
       return
     }
     const errMsg = err instanceof Error ? err.message : '流式调用失败'
@@ -262,10 +288,12 @@ export async function chatStream(
       callbacks.onError(
         `已自动修复：移除了第 ${badIndex + 1} 条不支持的消息内容，请重新发送。`
       )
+      updateTaskRunningInfo('main:' + _taskUuid, { mainMessage: `已自动修复：移除了第 ${badIndex + 1} 条不支持的消息内容，请重新发送。`, status:'stopped'})
       return
     }
 
     callbacks.onError(errMsg)
+    updateTaskRunningInfo('main:' + _taskUuid, { mainMessage: errMsg, status:'failed'})
     return
   }
 }

@@ -4,8 +4,9 @@ import { chat, chatStream } from '../agent'
 import type { ModelConfig } from '../agent/model'
 import { getConfig } from '../config'
 import { queryMessagesHistory } from '../agent/utils/chat-history'
-import { cancelTask, queryTaskQueue } from '../agent/children-agent/async'
-import type { ModelConfig as StoredModelConfig, ModelProvider, MessageHistoryQuery } from '../../shared/types'
+import { cancelTask } from '../agent/children-agent/async'
+import type { ModelConfig as StoredModelConfig, MessageHistoryQuery, EnvConfig } from '../../shared/types'
+import { queryTaskQueue } from '../agent/task-monitor'
 
 // agentVersion：所有需要 Agent 重建的配置变动（MCP / 子Agent / 模型）统一走此版本号
 export const updateAgentVersion = () => {
@@ -17,7 +18,7 @@ export const getAgentVersion = (): string => {
 }
 
 function resolveModelConfig() {
-  const activeProvider = getConfig('env').get('activeProvider') as ModelProvider
+  const { activeProvider , isDeepThinkEnabled } = getConfig('env').getAll() as EnvConfig
   const stored = getConfig('model').get(activeProvider) as StoredModelConfig | undefined
   if (!stored) return { error: '请先在设置中配置模型' }
   if (!stored.apiKey) return { error: '请先在设置中配置 API Key' }
@@ -27,6 +28,7 @@ function resolveModelConfig() {
       provider: activeProvider,
       model: stored.model,
       baseURL: stored.baseURL || (stored as any).baseUrl || '',
+      modelKwargs:{ thinking: { type: isDeepThinkEnabled ? "enabled" : "disabled" }}
     } as ModelConfig,
   }
 }
@@ -105,9 +107,9 @@ export function register(): void {
   })
 
   //查询异步任务队列
-  ipcMain.handle('task:queryQueue', async () => {
+  ipcMain.handle('task:queryQueue', async (_,taskId: string) => {
     try {
-      return { ok: true, data: queryTaskQueue() }
+      return { ok: true, data: queryTaskQueue(taskId) }
     } catch (err) {
       return { ok: false, error: (err as Error).message }
     }
