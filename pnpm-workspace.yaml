@@ -15,3 +15,10 @@ onlyBuiltDependencies:
 
 patchedDependencies:
   "@langchain/langgraph-sdk": patches/@langchain__langgraph-sdk.patch
+
+overrides:
+  # app-builder-lib@26 需要 @electron/get 的 ElectronDownloadCacheMode 枚举，
+  # 该枚举 3.1.0 才有；旧锁定的 3.0.0 会报 Cannot read properties of undefined (reading 'ReadWrite')。
+  # 仅提升满足 ^3.0.0 的那份（electron 自带的 2.0.3 不受影响）。
+  "@electron/get@^3.0.0": "3.1.0"
+
