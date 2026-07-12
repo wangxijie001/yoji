@@ -229,7 +229,7 @@ const AiChat = () => {
                     } else if (type === 'requires_approval') {
                         setInterruptInfo({ open: true, info: content, message: '' })
                     } else if(type === 'think') {
-                        streamRef.current.illation = streamRef.current.illation + content;
+                        streamRef.current.illation += content;
                     }
                 },
                 onDone: () => {

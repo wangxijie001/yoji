@@ -135,7 +135,7 @@ const TaskMonitor = () => {
             <div className={styles.content}>
                 <div className={styles.left}>
                     <div>任务列表</div>
-                    <div>
+                    <div className={'thin-scrollbar'}>
                         {taskList.map(item => (
                             <div
                                 key={item.taskId} className={styles.taskItem}

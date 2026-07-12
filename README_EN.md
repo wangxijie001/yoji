@@ -180,7 +180,6 @@ src/
 ```bash
 git clone https://github.com/wangxijie001/yoji.git
 cd yoji
-git submodule update --init   # Download local embedding model
 pnpm install
 pnpm dev
 ```
@@ -246,6 +245,11 @@ pnpm build:linux
 ## 📄 License
 
 MIT License
+
+## Recommended IDE
+
+- [VSCode](https://code.visualstudio.com/) + ESLint + Prettier
+- [Claude Code](https://claude.com/claude-code) — the repo ships a `CLAUDE.md`; open it with Claude Code to quickly understand the codebase and start developing
 
 ---
 

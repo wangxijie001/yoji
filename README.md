@@ -134,12 +134,20 @@ AI 可以直接读取和解析你的文件——不只是文本，还有 PDF 和
 
 ## 🖼️ 界面预览
 
-桌面级体验，每个细节都打磨过——
+> 桌面级体验：无框窗口 + 自定义拖拽，文字可直接选中复制，Ant Design 6.x 组件体系，macOS / Windows / Linux 全覆盖。
 
-- 无框窗口 + 自定义拖拽，干净利落
-- 文字**可直接选中复制**
-- Ant Design 6.x 组件体系，交互流畅
-- macOS / Windows / Linux 全覆盖
+![Yoji 演示](docs/img/example-01.gif)
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/img/emotion.png" alt="激素情绪系统" /><p align="center">激素情绪系统</p></td>
+    <td width="50%"><img src="docs/img/children-agent.png" alt="子 Agent / 工坊" /><p align="center">子 Agent / 工坊</p></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/img/mcp.png" alt="MCP 外部工具" /><p align="center">MCP 外部工具</p></td>
+    <td width="50%"><img src="docs/img/file.png" alt="文件管理" /><p align="center">文件管理</p></td>
+  </tr>
+</table>
 
 ---
 
@@ -179,7 +187,6 @@ src/
 ```bash
 git clone https://github.com/wangxijie001/yoji.git
 cd yoji
-git submodule update --init   # 下载本地向量模型
 pnpm install
 pnpm dev
 ```
@@ -251,3 +258,4 @@ MIT License
 ## 推荐 IDE
 
 - [VSCode](https://code.visualstudio.com/) + ESLint + Prettier
+- [Claude Code](https://claude.com/claude-code) — 项目已内置 `CLAUDE.md`，用 Claude Code 打开即可快速理解代码、上手开发
