@@ -36,14 +36,16 @@ function formatResults(rows: SnapshotRow[]): string {
 
 //查询记忆摘要
 export const searchMemories = tool(
-  async ({ query, time_from, time_to }: {
+  async ({ query, keywords, time_from, time_to }: {
     query?: string
+    keywords?: string
     time_from?: string
     time_to?: string
   }) => {
-    // 语义搜索和时间查询互斥，必须二选一
-    if (!query && !time_from && !time_to) return '请提供搜索关键词或时间范围。'
-    if (query && (time_from || time_to)) return '语义搜索和时间查询不能同时使用，请选择其一。'
+    // 搜索和时间查询互斥
+    const hasSearch = query || keywords
+    if (!hasSearch && !time_from && !time_to) return '请提供搜索关键词或时间范围。'
+    if (hasSearch && (time_from || time_to)) return '搜索和时间查询不能同时使用，请选择其一。'
 
     try {
       const db = new Database(DB_PATH)
@@ -56,31 +58,58 @@ export const searchMemories = tool(
 
       let rows: SnapshotRow[] = []
 
-      if (query) {
-        // 向量语义搜索，top 3
-        const queryVec = await generateEmbedding(query)
-        const f32 = new Float32Array(queryVec)
+      if (hasSearch) {
+        const K = 60           // RRF 平滑常数
+        const TOP = query && keywords ? 5 : 5  // 最终返回 top 5
+        const scores = new Map<number, number>()
 
-        const matched = db.prepare(`
-          SELECT rowid, distance
-          FROM memory_embeddings
-          WHERE embedding MATCH ?
-          ORDER BY distance
-          LIMIT 3
-        `).all(Buffer.from(f32.buffer)) as Array<{ rowid: number; distance: number }>
+        // ── 向量路径 ──
+        if (query) {
+          const queryVec = await generateEmbedding(query)
+          const f32 = new Float32Array(queryVec)
+          const vecResults = db.prepare(`
+            SELECT rowid, distance
+            FROM memory_embeddings
+            WHERE embedding MATCH ?
+            ORDER BY distance
+            LIMIT 10
+          `).all(Buffer.from(f32.buffer)) as Array<{ rowid: number; distance: number }>
 
-        if (matched.length > 0) {
-          const ids = matched.map((m) => m.rowid)
-          const placeholders = ids.map(() => '?').join(',')
+          vecResults.forEach((r, i) => scores.set(r.rowid, 1 / (K + i + 1)))
+        }
+
+        // ── 关键词路径（FTS5 BM25）──
+        if (keywords) {
+          const ftsResults = db.prepare(`
+            SELECT rowid, rank
+            FROM memory_snapshots_fts
+            WHERE memory_snapshots_fts MATCH ?
+            ORDER BY rank
+            LIMIT 10
+          `).all(keywords) as Array<{ rowid: number; rank: number }>
+
+          ftsResults.forEach((r, i) => {
+            scores.set(r.rowid, (scores.get(r.rowid) ?? 0) + 1 / (K + i + 1))
+          })
+        }
+
+        const mergedIds = [...scores.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, TOP)
+          .map(([id]) => id)
+
+        if (mergedIds.length > 0) {
+          const placeholders = mergedIds.map(() => '?').join(',')
           const snapshotRows = (db.prepare(`
             SELECT id, message_ids, summary, tags, time_start, time_end
             FROM memory_snapshots
             WHERE id IN (${placeholders})
-          `).all(...ids) as Array<{ id: number; message_ids: string; summary: string; tags: string | null; time_start: number; time_end: number }>)
+          `).all(...mergedIds) as Array<{ id: number; message_ids: string; summary: string; tags: string | null; time_start: number; time_end: number }>)
             .map((r) => ({ ...r, time_start: formatTimestamp(r.time_start), time_end: formatTimestamp(r.time_end) })) as SnapshotRow[]
 
+          // 按融合分数排序
           const idMap = new Map(snapshotRows.map((r) => [r.id, r]))
-          rows = matched.map((m) => idMap.get(m.rowid)!).filter(Boolean)
+          rows = mergedIds.map((id) => idMap.get(id)!).filter(Boolean)
         }
       } else if (time_from || time_to) {
         // 时间范围查询，top 3
@@ -101,7 +130,6 @@ export const searchMemories = tool(
       }
 
       db.close()
-      
       return formatResults(rows)
     } catch (error) {
       return `查询记忆失败: ${error}`
@@ -110,12 +138,16 @@ export const searchMemories = tool(
   {
     name: 'search_memories',
     description: `
-      搜索历史对话记忆摘要。可通过关键词（语义搜索）或时间范围查找。返回结果包含记忆摘要、标签、时间范围、原始消息ID列表
-       -语义搜索和时间查询不能同时使用，请选择其一
-       -时间范围查询时，时间范围，最好在一天内，尽量不要超过两天
+      搜索历史对话记忆摘要。支持三种模式：
+       -仅 query：纯向量语义搜索
+       -仅 keywords：纯关键词精确匹配（FTS5 BM25）
+       -query + keywords：混合检索，双路召回 + RRF 融合，效果最佳
+       -时间范围查询不能与搜索同时使用
+       -关键词需从用户问题中提取核心词，空格分隔，如 "React 项目 重构"
     `,
     schema: z.object({
-      query: z.string().optional().describe('搜索关键词或描述，用于语义匹配'),
+      query: z.string().optional().describe('自然语言描述，用于向量语义搜索'),
+      keywords: z.string().optional().describe('空格分隔的核心关键词，从用户问题中提取，用于 FTS5 精确文本匹配。如 "钓鱼 休闲 娱乐"'),
       time_from: z.string().optional().describe('时间范围起点，精确到秒，格式 YYYY-MM-DD HH:mm:ss，如 2026-06-01 14:00:00'),
       time_to: z.string().optional().describe('时间范围终点，精确到秒，格式 YYYY-MM-DD HH:mm:ss，如 2026-06-15 18:00:00'),
     }),

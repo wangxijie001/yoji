@@ -119,7 +119,7 @@ export async function chatStream(
     if (emotion) {
       const currentTime = dayjs().format("YYYY-MM-DD HH:mm:ss")
       const _systemMessage = new HumanMessage({
-        content: `我是你的情绪提示，你当前的情绪：${emotion}，当前时间：${currentTime}`
+        content: `我是你的情绪系统，你当前的情绪：${emotion}，当前时间：${currentTime}`
       })
       langchainMessages.unshift(_systemMessage)
     }

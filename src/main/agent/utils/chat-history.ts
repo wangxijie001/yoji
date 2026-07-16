@@ -70,7 +70,24 @@ export function initChatHistory(): void {
     CREATE VIRTUAL TABLE IF NOT EXISTS memory_embeddings USING vec0(
       embedding FLOAT[384]
     );
+
+    -- FTS5 关键词检索虚拟表，仅存倒排索引不存原文
+    -- content='memory_snapshots' 表示原文回源表读，INSERT 时自动同步索引
+    -- 约束：源表不能 UPDATE/DELETE（本表恰好只 INSERT，无需额外维护）
+    CREATE VIRTUAL TABLE IF NOT EXISTS memory_snapshots_fts USING fts5(
+      summary,
+      tags,
+      content='memory_snapshots',
+      content_rowid='id'
+    );
   `)
+
+  // 首次添加 FTS5 后执行一次 rebuild，完成后注释即可
+  // const ftsCount = db.prepare('SELECT COUNT(*) AS cnt FROM memory_snapshots_fts').get() as { cnt: number }
+  // if (ftsCount.cnt === 0) {
+  //   db.prepare("INSERT INTO memory_snapshots_fts(memory_snapshots_fts) VALUES('rebuild')").run()
+  // }
+
   db.close()
 }
 

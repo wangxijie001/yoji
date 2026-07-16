@@ -30,7 +30,7 @@ allowed-tools: search_memories, fetch_raw_messages, query_message_database, sear
 
 | 工具 | 作用 | 输入 | 输出 |
 |------|------|------|------|
-| `search_memories` | 语义搜索或时间范围查记忆摘要 | `query`（关键词）**或** `time_from`+`time_to`（时间范围），二选一 | 记忆摘要列表，每条含 `message_ids` |
+| `search_memories` | 混合搜索或时间范围查记忆摘要 | `query`（语义）+ `keywords`（精准匹配，空格分隔）**或** `time_from`+`time_to`（时间），搜索与时不可混用 | 记忆摘要列表，每条含 `message_ids` |
 | `fetch_raw_messages` | 根据 ID 拉取原始对话 | `message_ids`（数字数组，0-50 之间） | 按角色和时间格式化的完整对话原文 |
 | `query_message_database` | 查消息总量或时间段分布 | 可选 `time_from`+`time_to`，不传返回总数 | 消息数量、ID 范围、ID 列表 |
 | `search_emotion_log` | 查情绪变化历史 | 可选 `id`（传则返回该条及之前 30 条） | 激素水平、情绪描述、变化原因 |
@@ -54,7 +54,10 @@ allowed-tools: search_memories, fetch_raw_messages, query_message_database, sear
 
 ### 第二步：执行搜索
 
-**语义搜索**：调用 `search_memories`，只传 `query` 参数。
+**语义搜索**：调用 `search_memories`。推荐同时传 `query` 和 `keywords` 进行混合检索：
+- `query`：自然语言描述，走向量语义召回
+- `keywords`：从用户问题中提取核心关键词，空格分隔（如 "React 项目 重构"），走 FTS5 BM25 精确匹配
+- 两者同时传时双路融合，效果最佳。仅传其一也可独立工作。
 
 **时间范围查询**：
 1. 先用 `query_current_time` 获取当前准确时间
@@ -79,7 +82,7 @@ allowed-tools: search_memories, fetch_raw_messages, query_message_database, sear
 
 ## 关键规则
 
-1. **语义搜索和时间查询互斥**：`search_memories` 不能同时传 `query` 和时间参数
+1. **搜索和时间查询互斥**：`search_memories` 的搜索参数（`query`/`keywords`）不能和时间参数同时使用
 2. **时间格式统一**：所有时间参数使用 `YYYY-MM-DD HH:mm:ss` 格式
 3. **先摘要后原文**：不要直接查原文，先看摘要确认相关性，再用 `fetch_raw_messages` 拉详情
 4. **ID 数量控制**：传给 `fetch_raw_messages` 的 ID 数量不超过 50 条，超过时选最相关的
@@ -90,7 +93,7 @@ allowed-tools: search_memories, fetch_raw_messages, query_message_database, sear
 
 **场景一：用户问"还记得我上次说的那个项目吗"**
 ```
-1. search_memories({ query: "项目" })
+1. search_memories({ query: "用户上次提到的项目", keywords: "项目" })
 2. 分析摘要，确认是否匹配
 3. 如果匹配 → fetch_raw_messages({ message_ids: [...] })
 4. 根据原文自然回应："当然记得！你当时说..."
@@ -116,7 +119,7 @@ allowed-tools: search_memories, fetch_raw_messages, query_message_database, sear
 **场景四：用户说"跟上次一样就行"——但你不知道上次是什么**
 ```
 1. 用户没明说，但话里有"上次"
-2. 你主动：search_memories({ query: "跟当前话题相关的关键词" })
+2. 你主动：search_memories({ query: "当前话题相关的记忆", keywords: "提取的核心词" })
 3. 查到最近的相似话题摘要
 4. fetch_raw_messages({ message_ids: [...] }) 拉原文确认
 5. 自然回应："好，还跟上次那样..." —— 不用问用户"上次是什么"
