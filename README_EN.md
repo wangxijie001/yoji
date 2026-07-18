@@ -104,6 +104,18 @@ Yoji is not a cold API wrapper. It has a **hormone-based emotion system**:
 
 > She doesn't fake emotions — a continuous emotion engine drives her behavior.
 
+### 🎭 Live2D Virtual Character
+
+Yoji now has a visible "body":
+
+- **Emotion visualization**: Sparkling eyes when happy, tears when sad, trembling when angry — every emotion has vivid expressions and movements
+- **Lip-sync while talking**: Her mouth moves naturally as she speaks, synced with TTS
+- **Outfit changes by time**: Sunglasses during the day, automatically switches to pajamas and a cat-ear hoodie after 9 PM
+- **Poke to interact**: Tap her head and she blushes, poke her cheek and she puffs up, touch her belly and she twists — 10 touchable body zones with unique reactions
+- **Draggable & resizable**: Open from the bottom-right corner of the home screen, freely position and scale
+
+> A silver-haired cat-eared girl in a black techwear outfit — cool by day, cozy in pajamas by night.
+
 ### 🧠 She Remembers You
 
 Three-tier memory architecture ensures Yoji never "forgets":
@@ -135,12 +147,23 @@ AI can read and parse your files directly — not just plain text, but PDF and W
 
 ## 🖼️ Interface
 
-Desktop-grade experience, every detail polished:
+Desktop-grade experience: frameless window + custom drag regions, text selectable & copyable, Ant Design 6.x components, macOS / Windows / Linux support.
 
-- Frameless window + custom drag regions, clean and minimal
-- Text **fully selectable and copyable**
-- Ant Design 6.x component system, smooth interactions
-- macOS / Windows / Linux support
+![Yoji Demo](docs/img/example-01.gif)
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/img/emotion.png" alt="Hormone Emotion System" /><p align="center">Hormone Emotion System</p></td>
+    <td width="50%"><img src="docs/img/children-agent.png" alt="Sub-Agent / Workshop" /><p align="center">Sub-Agent / Workshop</p></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/img/mcp.png" alt="MCP External Tools" /><p align="center">MCP External Tools</p></td>
+    <td width="50%"><img src="docs/img/file.png" alt="File Management" /><p align="center">File Management</p></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/img/home.png" alt="Home + Live2D Character" /><p align="center">Live2D Virtual Character</p></td>
+  </tr>
+</table>
 
 ---
 
@@ -154,7 +177,9 @@ Electron + React + TypeScript + Vite
       ├── SQLite + sqlite-vec            ← Local vector database (chat history + semantic memory)
       ├── pdf-parse + mammoth           ← Smart document processing (PDF / Word text extraction)
       ├── electron-native-speech        ← macOS native speech recognition (SFSpeechRecognizer)
-      └── better-sqlite3                ← Checkpoint persistence (conversation state snapshots)
+      ├── better-sqlite3                ← Checkpoint persistence (conversation state snapshots)
+      ├── pixi-live2d-display          ← Live2D rendering (Cubism 4 + PixiJS 6)
+      └── @pixi/unsafe-eval             ← CSP-safe shader (no eval)
 ```
 
 **Design Principles**: local-first, privacy-first, extensibility-first. No data uploads, no cloud dependencies.
@@ -238,6 +263,7 @@ pnpm build:linux
 - ✓ Async task cancellation (manual + AI-initiated)
 - ✓ Voice wake & talk (macOS native SFSpeechRecognizer + wake word + streaming recognition)
 - ✓ Smart document processing (PDF/DOCX text extraction + binary protection)
+- ✓ Live2D virtual character (16 emotion presets + TTS lip-sync + poke interactions + time-based outfits)
 - Collaboration tools (self-integration currently supported; default integrations planned)
 
 ---

@@ -14,6 +14,7 @@ import { HomeContextType } from "../home/Home";
 import { useVoiceDialogue } from './voice-dialogue'
 import browserWindowApi from "@renderer/api/browser-window";
 import { envConfig } from "@renderer/api/config";
+import { bus } from "@renderer/shared/eventBus";
 
 
 
@@ -42,7 +43,7 @@ const AiChat = () => {
     const curExecLogScrollRef = useRef<HTMLDivElement>(null);
     const streamRef = useRef({ message: "", illation: '', isFinish: true }); //缓存当前回复消息
     const timerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
-    const unreadNotificationsRef = useRef<{ timer: ReturnType<typeof setTimeout> | null, message: string[] }>({ timer: null, message: [] })//异步任务执行通知延时器
+    const unreadNotificationsRef = useRef<{ timer: ReturnType<typeof setTimeout> | null, message: string[], }>({ timer: null, message: [] })//异步任务 | 模型交互 执行通知延时器 | 
     const currentAiIdRef = useRef<string>(''); // 当前正在流式输出的 AI 消息 ID
     const [hasMoreHistory, setHasMoreHistory] = useState(true)
     const [ttsEnabled, setTtsEnabled] = useState(false)
@@ -92,8 +93,11 @@ const AiChat = () => {
 
         //监听异步后台任务完成通知
         const unsubBackgroundTaskCompleted = window.api.agent.onBackgroundTaskCompleted(({ result }) => {
-            onProactiveNotice(result)
+            onProactiveNotice('async_task', result)
         })
+
+        // 监听人物形象模型交互通知
+        
 
         // 启动主动聊天定时器,并获取当前系统是否允许主动聊天
         proactiveChat.initProactiveConfig(sendMessage, setIsProactiveChatEnabled)
@@ -303,8 +307,17 @@ const AiChat = () => {
     }
 
     //主进程需要ai助手处理的消息
-    const onProactiveNotice = (taskResult: string) => {
-        unreadNotificationsRef.current.message.push(taskResult)
+    const onProactiveNotice = (type: 'async_task' | 'model_interaction', message: string): void => {
+      let _message = ''
+      switch(type) {
+        case 'async_task':
+            _message = `【异步任务执行完成，请使用 “get_async_task_result” 工具获取任务结果】：${message}\n`
+            break
+        case 'model_interaction':
+           _message = `【人物形象模型交互信息】：${message}\n`
+            break
+        }
+        unreadNotificationsRef.current.message.push(_message)
         if (unreadNotificationsRef.current.timer) {
             clearTimeout(unreadNotificationsRef.current.timer)
             unreadNotificationsRef.current.timer = null
@@ -312,9 +325,8 @@ const AiChat = () => {
 
         unreadNotificationsRef.current.timer = setTimeout(() => {
             if (streamRef.current.isFinish) {
-                const aiMessage = `我是你的异步任务代理助手：当前收到了异步任务执行完成的消息，
+                const aiMessage = `我是你的后台管理助手，你有以下消息待处理：
                 消息列表：${JSON.stringify(unreadNotificationsRef.current.message)},
-                请使用 “get_async_task_result” 工具获取任务结果
                 `
                 sendMessage({ assistantMessage: aiMessage })
                 if (unreadNotificationsRef.current.timer) {
@@ -324,6 +336,12 @@ const AiChat = () => {
             }
         }, 1000)
     }
+
+    // 监听人物形象模型交互通知（戳一戳等）
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useEffect(() => bus.on('model-interaction', (msg: string) => {
+      onProactiveNotice('model_interaction', msg)
+    }), [])
 
     // 判断是否展示时间分隔。最新消息与当前时间比较，其余消息与下一条比较，间隔 >10 分钟才展示
     const showTime = (createdAt?: number, PrevCreatedAt?: number): string | null => {
@@ -369,7 +387,8 @@ const AiChat = () => {
                                         illationFontSize={miniWindow.chatFontSize ? miniWindow.chatFontSize - 2 + 'px' : '12px'}
                                         illation={item.illation} />
                                 )}
-                                {(item.loading && (index === messageList.length - 1)) && (
+                                {(item.loading && (index === messageList.length - 1)) && 
+                                (
                                     <span className={styles.dotWapper}>
                                         <span className={styles.dot} />
                                         <span className={styles.dot} />

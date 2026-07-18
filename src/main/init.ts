@@ -9,6 +9,7 @@ import { initTaskResultTable } from './agent/children-agent/async/task-result'
 import { initDefaultAgent } from './agent/children-agent/agent-default'
 import { initLogger } from './utils/logger'
 import { clearTemp } from './utils/tem-file-manage'
+import { changeEmotion } from './agent/emotion'
 
 const COMPANION_DIR = join(app.getPath('userData'), 'companion')
 const AGENTS_MD_PATH = join(COMPANION_DIR, 'AGENTS.md')
@@ -28,5 +29,6 @@ export function initCompanion(): void {
   initSkills()         // 注入内置 skills 到 companion 目录
   initTaskResultTable() // task_results 异步任务结果表
   initDefaultAgent()    // 注册内置子 Agent
+  changeEmotion([])     // 初始化当前情绪状态
   clearTemp()           // 清理临时文件目录
 }

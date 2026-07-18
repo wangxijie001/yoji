@@ -2,6 +2,7 @@ import { spawn, type ChildProcess } from 'child_process'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { mkdirSync, unlinkSync, readdirSync } from 'fs'
+import { broadcast } from '../../ipc/broadcast'
 
 /**
  * macOS TTS 语音播报模块
@@ -38,6 +39,13 @@ cleanupOrphanFiles()
 // ---- TTS 参数 ----
 const TTS_RATE = 180            // 语速（词/分钟）
 
+// ---- 播报状态通知（渲染进程用于 Live2D 口型同步）----
+function notifySpeaking(): void {
+  try { broadcast('tts:speakingChanged', playing) } catch (_) { /* ignore */ }
+}
+
+// ---- TTS 开关 ----
+
 // ---- TTS 开关 ----
 let _enabled = false
 
@@ -73,11 +81,13 @@ function playIfReady(): void {
   const item = playQueue[0]
   if (!item?.ready) return
   playing = true
+  notifySpeaking()
 
   const p = spawn('afplay', [item.file])
   currentPlayer = p
   p.on('close', () => {
     playing = false
+    notifySpeaking()
     currentPlayer = null
     try { unlinkSync(item.file) } catch (_) { /* ignore */ }
     playQueue.shift()
@@ -85,6 +95,7 @@ function playIfReady(): void {
   })
   p.on('error', () => {
     playing = false
+    notifySpeaking()
     currentPlayer = null
     playQueue.shift()
     playIfReady()
@@ -178,6 +189,7 @@ function stop(): void {
   if (timer) { clearInterval(timer); timer = null }
   sentenceBuffer = ''
   playing = false
+  notifySpeaking()
   generating = false
   for (const item of playQueue) {
     try { unlinkSync(item.file) } catch (_) { /* ignore */ }

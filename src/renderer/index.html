@@ -12,6 +12,10 @@
 
   <body>
     <div id="root"></div>
+    <!-- Live2D Cubism Core：非 ESM 全局脚本，必须先于应用代码加载（classic script 先于 module script 执行）
+         注意：必须用 Cubism 5.0/5.1 的 core（当前为 5-r.1）。4.x core 载不了 moc3 v5 模型（如 Alexia）；
+         5.2+ 的 core 把 renderOrders 从 drawables 挪到了 model 上，pixi-live2d-display 0.4 首帧渲染会崩 -->
+    <script src="./live2d/live2dcubismcore.min.js"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

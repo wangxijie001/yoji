@@ -5,31 +5,27 @@
   overflow: hidden;
   cursor: grab;
   user-select: none;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+  /* box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15); */
   transition: box-shadow 0.2s;
   position: absolute;
   >i{
-    color: #fff;
+    color: transparent;
     font-size: 20px;
     cursor: pointer;
     position: absolute;
     top: -2px;
     right: 3px;
     &:hover{
-      color: #d2d2d2;
+      color: #d2d2d2 !important;
     }
   }
-
-  &:active {
-    cursor: grabbing;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  &:hover >i{
+    color: #fff;
   }
 
-  .video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    pointer-events: none;
+  &:hover, &:active {
+    cursor: grabbing;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
   }
 
   .resizeHandle {

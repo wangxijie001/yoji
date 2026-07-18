@@ -45,7 +45,7 @@ const routes: (RouteObject & { label: string })[] = [
       {
         path: 'workshop',
         element: <Workshop />
-      }
+      },
     ]
   },
   {

@@ -14,8 +14,8 @@ import { existsSync } from 'fs'
 export const previewHtml = tool(
   async ({ html, path, title }: { html?: string; path?: string; title?: string }) => {
     const win = new BrowserWindow({
-      width: 700,
-      height: 520,
+      width: 900,
+      height: 660,
       title: title || '预览',
       webPreferences: {
         sandbox: false, // file:// 协议需要关闭 sandbox

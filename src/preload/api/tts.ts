@@ -12,4 +12,6 @@ export const tts = {
     ipcRenderer.invoke('tts:toggle') as Promise<{ ok: boolean; data: boolean }>,
 
   onEnabledChanged: createListener<boolean>('tts:enabledChanged'),
+
+  onSpeakingChanged: createListener<boolean>('tts:speakingChanged'),
 }

@@ -1,0 +1,32 @@
+{
+	"Version": 3,
+	"FileReferences": {
+		"Moc": "Alexia.moc3",
+		"Textures": [
+			"Alexia.8192/texture_00.png",
+			"Alexia.8192/texture_01.png"
+		],
+		"Physics": "Alexia.physics3.json",
+		"DisplayInfo": "Alexia.cdi3.json",
+		"Expressions": [],
+		"Motions": {}
+	},
+	"Groups": [
+		{
+			"Target": "Parameter",
+			"Name": "LipSync",
+			"Ids": [
+				"ParamMouthOpenY"
+			]
+		},
+		{
+			"Target": "Parameter",
+			"Name": "EyeBlink",
+			"Ids": [
+				"ParamEyeLOpen",
+				"ParamEyeROpen"
+			]
+		}
+	],
+	"HitAreas": []
+}

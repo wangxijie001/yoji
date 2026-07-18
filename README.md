@@ -103,6 +103,18 @@ Yoji 不是一个冷冰冰的模型接口。它有**基于激素的情绪系统*
 
 > 它不是假装有情绪，而是真的有一个持续运行的情绪引擎在驱动。
 
+### 🎭 Live2D 虚拟形象
+
+Yoji 现在有了看得见的"身体"：
+
+- **情绪可视化**：开心时星星眼微笑、悲伤时流泪抽泣、愤怒时脸红颤抖——每种情绪都有生动的表情和动作
+- **会说话会动嘴**：AI 说话时嘴巴跟着张合，表情同步，像真人在讲话
+- **穿了会换衣服**：中午墨镜上头遮阳，晚上 9 点自动换上睡衣猫耳帽
+- **戳她会害羞**：点她的头会脸红低头，戳脸会鼓腮，拍肚子会扭腰，碰尾巴会跳舞
+- **可拖拽缩放**：首页右下角打开，随意拖动位置、调整大小
+
+> 一只银白发猫耳少女，黑色机能风穿搭——白天酷酷的，晚上换上睡衣又变居家治愈。
+
 ### 🧠 它会记住你
 
 三层记忆架构确保 Yoji 不会"忘记"：
@@ -147,6 +159,9 @@ AI 可以直接读取和解析你的文件——不只是文本，还有 PDF 和
     <td width="50%"><img src="docs/img/mcp.png" alt="MCP 外部工具" /><p align="center">MCP 外部工具</p></td>
     <td width="50%"><img src="docs/img/file.png" alt="文件管理" /><p align="center">文件管理</p></td>
   </tr>
+  <tr>
+    <td width="50%"><img src="docs/img/home.png" alt="主页+Live2D形象" /><p align="center">Live2D 虚拟形象</p></td>
+  </tr>
 </table>
 
 ---
@@ -161,7 +176,9 @@ Electron + React + TypeScript + Vite
       ├── SQLite + sqlite-vec    ← 本地向量数据库（聊天记录 + 语义记忆）
       ├── pdf-parse + mammoth   ← 智能文档处理（PDF / Word 提取文字）
       ├── electron-native-speech ← macOS 原生语音识别（SFSpeechRecognizer）
-      └── better-sqlite3         ← Checkpoint 持久化（对话状态快照）
+      ├── better-sqlite3         ← Checkpoint 持久化（对话状态快照）
+      ├── pixi-live2d-display   ← Live2D 渲染引擎（Cubism 4 + PixiJS 6）
+      └── @pixi/unsafe-eval      ← CSP 安全策略兼容（无 eval shader）
 ```
 
 **设计原则**：本地优先、隐私优先、扩展优先。不上传任何数据，不依赖任何云服务。
@@ -245,6 +262,7 @@ pnpm build:linux
 - ✓ 异步任务取消（手动 + AI 自主两种方式）
 - ✓ 语音唤醒对话（macOS 原生 SFSpeechRecognizer + 唤醒词 + 流式识别）
 - ✓ 智能文档处理（PDF/DOCX 自动提取文字，二进制拦截保护）
+- ✓ Live2D 虚拟形象（16 情绪映射 + TTS 口型同步 + 戳一戳互动 + 时间段换装）
 - 协作办公(目前已可以根据需要自主集成，后续会提供一些默认集成功能)
 
 

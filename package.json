@@ -1,6 +1,6 @@
 {
   "name": "yoji",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "packageManager": "pnpm@11.9.0",
   "engines": {
     "pnpm": ">=11"
@@ -35,6 +35,7 @@
     "@langchain/mcp-adapters": "^1.1.3",
     "@langchain/openai": "^1.5.3",
     "@langchain/tavily": "^1.2.0",
+    "@pixi/unsafe-eval": "6.5.10",
     "@xenova/transformers": "^2.17.2",
     "antd": "^6.4.3",
     "axios": "^1.17.0",
@@ -50,6 +51,8 @@
     "p-queue": "^9.1.0",
     "p-retry": "^7.1.1",
     "pdf-parse": "^2.4.5",
+    "pixi-live2d-display": "^0.4.0",
+    "pixi.js": "^6.5.0",
     "prism-themes": "^1.9.0",
     "react-infinite-scroller": "^1.2.6",
     "react-markdown": "^10.1.0",

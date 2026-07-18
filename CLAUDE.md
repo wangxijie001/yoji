@@ -283,7 +283,7 @@ scrollbar-width: thin;
 ## 已确定的技术决策
 
 - **路由方案**：react-router-dom v7，必须用 `HashRouter`。Electron 加载本地文件走 `file://` 协议，`BrowserRouter` 依赖服务端路由，不能用。
-- **包管理器**：强制 pnpm，`package.json` 中有 `pnpm` 配置段，`.npmrc` 配置了 electron 国内镜像加速。
+- **包管理器**：强制 pnpm（构建配置在 `pnpm-workspace.yaml`：allowBuilds / patchedDependencies / overrides）。**Electron 镜像加速**：pnpm v11 起 `.npmrc` 里的 `electron_mirror` 不再以 `npm_config_*` 环境变量传给 install 脚本（官方行为变更），必须通过 shell 环境变量 `ELECTRON_MIRROR` / `ELECTRON_BUILDER_BINARIES_MIRROR` 设置（已写入 `~/.zshrc`）。否则 electron postinstall 会走 GitHub 下载，超时失败。`.npmrc` 的 registry 配置仍然生效。
 - **IPC 通信**：`main ↔ preload ↔ renderer` 三级通信，通过 `contextBridge` 保证安全。渲染进程不能直接 `require('electron')`。
 - **TypeScript 配置**：`tsconfig.node.json` 管主进程和 preload，`tsconfig.web.json` 管渲染进程，两个编译上下文互不干扰。
 - **共享类型声明**：`src/shared/types.ts` 存放主进程和渲染进程共用的纯类型（interface/type/enum）。渲染进程用 `@shared/types` 导入，主进程用相对路径导入。该目录不能引用 Node.js/Electron 模块。
