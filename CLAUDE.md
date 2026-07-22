@@ -33,7 +33,7 @@ src/main/
 ├── http.ts                # HTTP 请求工具
 ├── ipc/                   # IPC 处理器
 │   ├── index.ts           # registerAll() 汇总注册
-│   ├── agent.ts           # agent:chat / agent:chat:stream（流式对话）
+│   ├── agent.ts           # agent:chat / agent:chat:stream / wechat:toggle（微信连接切换）
 │   ├── config.ts          # 配置 IPC（通用 config:getAll/set/delete）
 │   ├── emotion.ts         # emotion:log（情绪日志查询）
 │   ├── file.ts            # file:readAgentsMd / file:export / file:import
@@ -62,6 +62,10 @@ src/main/
     │   └── summarization.ts       # 摘要中间件
     ├── children-agent/    # 子 Agent：async/（异步任务队列 + 事件循环 executor）、sync/（同步子 Agent）、agent-list、mcp-execute-agent
     ├── task-monitor/      # 任务运行信息缓存（updateTaskRunningInfo 增量写入 / queryTaskQueue 查询；主对话与异步任务共用）
+    ├── wechat-connect/    # 微信 iLink Bot 连接
+    │   ├── index.ts       # toggleWechat / initWechatConnect 入口
+    │   ├── request.ts     # HTTP 工具（get/post，统一 BASE_URL + 公共请求头）
+    │   └── wechat-server.ts # 扫码登录、消息轮询、发送/回复、输入状态、AI 回复
     └── utils/             # checkpoint 清理（含 deleteMessageByIndex 精确删消息）、chat-history、TTS 播报、
                             # token-logger、embedding、speech（macOS 原生语音识别）、tem-file-manage（临时文件读写）
 ```
@@ -257,6 +261,25 @@ macOS SFSpeechRecognizer
 **状态机**：`idle → 点麦克风 → listening → 听到"小优" → woken → 2s 静默 → idle → onMessageFinal 发消息`
 
 **兼容性**：`process.platform === 'darwin'` 时注册，Windows 上静默跳过。渲染进程 `isSupported` 为 false 时隐藏语音按钮。
+
+### 微信连接（iLink Bot）
+
+文件：`src/main/agent/wechat-connect/`，设计文档：`docs/companion/wechat-connect.md`。
+
+通过微信 ClawBot（iLink 协议）将 Yoji 连接到微信个人号，用户可通过手机微信与 AI 助手对话。
+
+**架构**：
+```
+渲染进程 toggleWechat() ──IPC──→ 主进程 toggleWechat()
+  ├─ 连接：isEnabled=true → setTokenInfo → pollLoopMessage
+  │    ├─ 有 token → 直接开始消息轮询
+  │    └─ 无 token → getQRCodeAndShow → pollQRCodeStatus → 消息轮询
+  └─ 断开：isEnabled=false → changePollLoopMessageRunning(false) → 退出轮询
+```
+
+**消息处理**：收到消息 → 收集为 `[{role:'user', content:'...'}]` → typing → `chatStream` → `sendReply`
+
+**核心限制**：`sendmessage` 接口要求 `context_token`，只能回复不能主动发消息。
 
 ## 窗口配置
 

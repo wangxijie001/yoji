@@ -16,7 +16,7 @@ import {
   createYawnAnimator
 } from './animation'
 
-export type TouchType = 'ear' | 'head' | 'face' | 'chest' | 'belly' | 'arm' | 'hand' | 'leg' | 'foot' | 'tail'
+export type TouchType = 'ear' | 'head' | 'face' | 'chest' | 'belly' | 'conceal' | 'arm' | 'hand' | 'leg' | 'foot' | 'tail'
 export type TouchEvent = ((type: TouchType) => void) | null
 // CSP 不允许 unsafe-eval，pixi 默认用 new Function() 生成 shader，打上官方无 eval 补丁
 install(PIXI)
@@ -183,6 +183,7 @@ const Live2D = ({
       <div className={styles.face} onClick={() => handlePoke('face')}/>
       <div className={styles.chest} onClick={() => handlePoke('chest')}/>
       <div className={styles.belly} onClick={() => handlePoke('belly')}/>
+      <div className={styles.conceal} onClick={() => handlePoke('conceal')}/>
       <div className={styles.armLeft} onClick={() => handlePoke('arm')}/>
       <div className={styles.armRight} onClick={() => handlePoke('arm')}/>
       <div className={styles.handLeft} onClick={() => handlePoke('hand')}/>

@@ -137,6 +137,16 @@ AI can read and parse your files directly — not just plain text, but PDF and W
 - **Binary Protection**: Unsupported formats (images, audio, video) are blocked with a clear message — no cryptic errors
 - Transparent to the user — just drag files in, the Agent handles the rest
 
+### 📱 WeChat Connection
+
+Connect Yoji to your personal WeChat account — **your phone becomes an AI terminal**:
+
+- Scan QR to connect, persistent once configured
+- Send messages on your phone → Yoji replies instantly — **real AI conversation**
+- "Typing..." indicator supported, feels like chatting with a real person
+- Desktop and mobile chat histories are **fully isolated** — separate conversations, no crossover
+- Built on WeChat's iLink ClawBot protocol — official API, stable and reliable
+
 ### 📦 Take It With You
 
 - **Export**: one-click package everything (memories + emotions + config) into a `.ecompanion` file
@@ -264,6 +274,7 @@ pnpm build:linux
 - ✓ Voice wake & talk (macOS native SFSpeechRecognizer + wake word + streaming recognition)
 - ✓ Smart document processing (PDF/DOCX text extraction + binary protection)
 - ✓ Live2D virtual character (16 emotion presets + TTS lip-sync + poke interactions + time-based outfits)
+- ✓ WeChat connection (iLink ClawBot: QR login + message polling + AI reply + typing indicator)
 - Collaboration tools (self-integration currently supported; default integrations planned)
 
 ---

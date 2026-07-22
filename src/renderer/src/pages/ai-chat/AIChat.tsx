@@ -49,6 +49,7 @@ const AiChat = () => {
     const [ttsEnabled, setTtsEnabled] = useState(false)
     const [isProactiveChatEnabled, setIsProactiveChatEnabled] = useState(false)
     const [isDeepThinkEnabled, setIsDeepThinkEnabled] = useState(false)
+    const [isWechatConnectEnabled, setIsWechatConnectEnabled] = useState(false)
     const [interruptInfo, setInterruptInfo] = useState<{ open: boolean, info?: string; message?: string }>({ open: false })
 
     const [isRunningChat, setIsRunningChat] = useState<boolean>(false)
@@ -96,13 +97,12 @@ const AiChat = () => {
             onProactiveNotice('async_task', result)
         })
 
-        // 监听人物形象模型交互通知
-        
-
         // 启动主动聊天定时器,并获取当前系统是否允许主动聊天
         proactiveChat.initProactiveConfig(sendMessage, setIsProactiveChatEnabled)
         // 初始化深度思考状态
         changeDeepThinkEnabled()
+        // 初始化微信连接状态
+        changeWechatConnectEnabled()
 
         return () => {
             unsubTts();
@@ -306,6 +306,26 @@ const AiChat = () => {
         agentApi.updateVersion()
     }
 
+    //切换微信连接状态 不传参数时根据配置文件获取当前状态
+    const changeWechatConnectEnabled = async (enabled?: boolean) => {
+        if(enabled === undefined) {
+            const wechatConnectInfo = (await envConfig.get<{isEnabled: boolean}>('wechatConnectInfo')) || { isEnabled: false }
+            setIsWechatConnectEnabled(wechatConnectInfo.isEnabled)
+            return
+        }
+
+        setIsWechatConnectEnabled(enabled)
+        const connected = await agentApi.toggleWechat()
+        setIsWechatConnectEnabled(connected)
+        if (connected) {
+           message.success('手机微信连接已开启，可通过手机微信与助手交互')
+        } else {
+            message.success('手机微信连接已关闭')
+        }
+    }
+
+
+
     //主进程需要ai助手处理的消息
     const onProactiveNotice = (type: 'async_task' | 'model_interaction', message: string): void => {
       let _message = ''
@@ -445,6 +465,12 @@ const AiChat = () => {
                             style={{ color: isDeepThinkEnabled ? 'var(--default-link-text-color)' : '' }}
                             onClick={() => changeDeepThinkEnabled(!isDeepThinkEnabled)}
                             title={isDeepThinkEnabled ? '深度思考已开启' : '深度思考已关闭'}
+                        />
+                        <i
+                            className="iconfont icon-cocos-weixin"
+                            style={{ color: isWechatConnectEnabled ? 'var(--default-link-text-color)' : '' }}
+                            onClick={() => changeWechatConnectEnabled(!isWechatConnectEnabled)}
+                            title={isWechatConnectEnabled ? '连接手机微信' : '关闭手机微信连接'}
                         />
 
                     </div>

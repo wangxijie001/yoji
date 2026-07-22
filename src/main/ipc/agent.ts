@@ -7,6 +7,7 @@ import { queryMessagesHistory } from '../agent/utils/chat-history'
 import { cancelTask } from '../agent/children-agent/async'
 import type { ModelConfig as StoredModelConfig, MessageHistoryQuery, EnvConfig } from '../../shared/types'
 import { queryTaskQueue } from '../agent/task-monitor'
+import { toggleWechat } from '../agent/wechat-connect'
 
 // agentVersion：所有需要 Agent 重建的配置变动（MCP / 子Agent / 模型）统一走此版本号
 export const updateAgentVersion = () => {
@@ -119,6 +120,16 @@ export function register(): void {
   ipcMain.handle('task:cancel', async (_, taskId: string) => {
     try {
       return { ok: true, data: cancelTask(taskId) }
+    } catch (err) {
+      return { ok: false, error: (err as Error).message }
+    }
+  })
+
+  // 微信连接 — 切换连接/断开
+  ipcMain.handle('wechat:toggle', async () => {
+    try {
+      const connected = await toggleWechat()
+      return { ok: true, data: { connected } }
     } catch (err) {
       return { ok: false, error: (err as Error).message }
     }

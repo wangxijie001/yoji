@@ -70,6 +70,16 @@ const agent = {
     if (!res.ok) throw new Error(res.error)
     return res.data!
   },
+
+  /** 微信连接 — 切换连接/断开，返回是否已连接 */
+  async toggleWechat(): Promise<boolean> {
+    const res = await window.api.agent.toggleWechat()
+    if (!res.ok) {
+      message.error(res.error || '微信连接操作失败')
+      return false
+    }
+    return res.data?.connected ?? false
+  },
 }
 
 export default agent 

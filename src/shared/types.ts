@@ -7,6 +7,13 @@
 
 //声明文件 类型
 export type ConfigName = 'env' | 'model' | 'mcp' | 'childrenAgent'
+//微信 token 数据类型
+export type WechatTokenData ={
+  bot_token: string
+  ilink_bot_id: string
+  baseurl: string
+  user_id: string // 即 ilink_user_id，扫码确认用户的微信 ID
+}
 // 环境配置文件类型
 export type EnvConfig = { 
    activeProvider: ModelProvider,//当前激活的模型提供者
@@ -15,6 +22,7 @@ export type EnvConfig = {
    isProactiveChatEnabled: boolean,//是否开启主动聊天
    isEmotionSystemEnabled: boolean,//是否开启情绪系统
    isDeepThinkEnabled: boolean,//是否开启深度思考
+   wechatConnectInfo: {isEnabled: boolean, botToken: WechatTokenData},//微信桥接服务信息
 }
 //支持的模型种类
 export type ModelProvider = 'openai' | 'deepseek'

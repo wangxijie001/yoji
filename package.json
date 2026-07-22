@@ -1,6 +1,6 @@
 {
   "name": "yoji",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "packageManager": "pnpm@11.9.0",
   "engines": {
     "pnpm": ">=11"

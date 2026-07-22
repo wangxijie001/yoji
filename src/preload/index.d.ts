@@ -33,6 +33,7 @@ interface Api {
     toggleMiniWindow: () => Promise<boolean>
     queryTaskQueue: (taskId?: string) => Promise<ApiResponse<unknown>>
     cancelTask: (taskId: string) => Promise<ApiResponse<string>>
+    toggleWechat: () => Promise<ApiResponse<{ connected: boolean }>>
   }
   emotion: {
     getLog: (limit: number, id?: number) => Promise<ApiResponse<EmotionState[]>>

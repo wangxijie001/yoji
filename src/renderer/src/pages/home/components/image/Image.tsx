@@ -79,6 +79,7 @@ const Image = ({ emotion }: { emotion?: string }) => {
       face: '用户摸了摸你的脸',
       chest: '用户摸了摸你的胸部',
       belly: '用户摸了摸你的腹部',
+      conceal: '用户摸了摸你的隐私部位',
       arm: '用户摸了摸你的手臂',
       hand: '用户摸了摸你的手',
       leg: '用户摸了摸你的腿',
@@ -87,7 +88,6 @@ const Image = ({ emotion }: { emotion?: string }) => {
     }
    
     bus.emit('model-interaction', TouchMessage[type])
-    console.log(TouchMessage[type])
   }
 
   return isOpen ? (

@@ -59,4 +59,8 @@ export const agent = {
   /** 取消异步任务 */
   cancelTask: (taskId: string) =>
     ipcRenderer.invoke('task:cancel', taskId) as Promise<ApiResponse<string>>,
+
+  /** 微信连接 — 切换连接/断开 */
+  toggleWechat: () =>
+    ipcRenderer.invoke('wechat:toggle') as Promise<ApiResponse<{ connected: boolean }>>,
 }
