@@ -18,14 +18,13 @@ import {
 } from './task-result'
 import { broadcast } from '../../../ipc/broadcast'
 import { toolsStore } from '../../tools'
-import { updateTaskRunningInfo } from '../../task-monitor'
+import { getAgentGraph, updateTaskRunningInfo } from '../../task-monitor'
 
 type Task = {
   taskId: string // 任务ID
   params: string // 任务参数
   agentId: string // 任务所属智能体ID
 }
-
 
 let eventLoopRunning: ReturnType<typeof setInterval> | null = null
 const MAX_RUNNING_TASKS = 5
@@ -35,7 +34,6 @@ const taskQueue: Task[] = []
 const runningTaskQueue: Map<string, Task> = new Map()
 // 任务结果队列
 const taskResultQueue: TaskResult[] = []
-
 
 // 子智能体缓存映射
 // key: agentId(uuid), value: {uuid: string,md5: string,agent:any}
@@ -50,8 +48,6 @@ const cacheAgentMap = new Map<
     abortController?: AbortController
   }
 >()
-
-
 
 // 获取智能体,如果不存在则创建
 const getChildAgent = async (agentId: string) => {
@@ -205,11 +201,12 @@ async function handleStreamOutput(taskId: string, stream: any): Promise<string> 
   for await (const [streamMode, chunk] of stream) {
     // console.log(streamMode)
     if (streamMode === 'messages') {
-
-        const msg = Array.isArray(chunk) ? chunk[0] : chunk
+      const msg = Array.isArray(chunk) ? chunk[0] : chunk
       // 思考过程
       if (msg.additional_kwargs?.reasoning_content) {
-        updateTaskRunningInfo('async:' + taskId, { thinkMessage: msg.additional_kwargs.reasoning_content })
+        updateTaskRunningInfo('async:' + taskId, {
+          thinkMessage: msg.additional_kwargs.reasoning_content
+        })
       }
 
       // AI 输出
@@ -220,13 +217,20 @@ async function handleStreamOutput(taskId: string, stream: any): Promise<string> 
     }
 
     if (streamMode === 'updates') {
+      // 节点名是 chunk 的 key（如 'model_request'、'tools'），记录给状态图高亮
+      const nodeKeys = Object.keys(chunk || {})
+      if (nodeKeys.length > 0) {
+        updateTaskRunningInfo('async:' + taskId, { currentNode: nodeKeys[0] })
+      }
       // 工具调用请求
       if (chunk.model_request) {
         const msgs = chunk.model_request.messages || []
         for (const m of msgs) {
           if (m.tool_calls?.length) {
             for (const tc of m.tool_calls) {
-              updateTaskRunningInfo('async:' + taskId, { toolsMessage: {id: tc.id, name: tc.name, params: JSON.stringify(tc.args)} })
+              updateTaskRunningInfo('async:' + taskId, {
+                toolsMessage: { id: tc.id, name: tc.name, params: JSON.stringify(tc.args) }
+              })
             }
           }
         }
@@ -237,7 +241,9 @@ async function handleStreamOutput(taskId: string, stream: any): Promise<string> 
         const toolMsgs = chunk.tools.messages || []
         for (const m of toolMsgs) {
           if (m.type === 'tool') {
-             updateTaskRunningInfo('async:' + taskId, { toolsMessage: {id: m.tool_call_id, content: m.content} })
+            updateTaskRunningInfo('async:' + taskId, {
+              toolsMessage: { id: m.tool_call_id, content: m.content }
+            })
           }
         }
       }
@@ -252,6 +258,11 @@ const executor = async (task: Task) => {
   try {
     const { taskId, params, agentId } = task
     const agent = await getChildAgent(agentId)
+    const agentGraph = await getAgentGraph(agent)
+    updateTaskRunningInfo('async:' + taskId, {
+      agentGraph: agentGraph,
+      currentNode: null,
+    })
 
     updateAgentStatus(agentId, 'running')
     const threadId = uuidv4()
@@ -264,6 +275,7 @@ const executor = async (task: Task) => {
     const stream = await agent.stream({ messages: [new HumanMessage(params)] }, streamConfig)
 
     const resultText = await handleStreamOutput(taskId, stream)
+    updateTaskRunningInfo('async:' + taskId, { currentNode: '__end__' })
 
     runningTaskQueue.delete(taskId)
     taskResultQueue.push({
@@ -383,8 +395,6 @@ export const cancelTask = (taskId: string): string => {
 
   return `[error] 未找到指定任务 (taskId:${taskId})，可能已完成或不存在`
 }
-
-
 
 //查询任务结果
 export const queryTaskResult = (taskId: string) => {

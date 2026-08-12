@@ -1,5 +1,4 @@
 import { searchMemories, fetchRawMessages, queryMessageDatabase } from './search-memories'
-import { searchEmotionLog } from './search-emotion-log'
 import { getCharacterAppearance } from './get-character-appearance'
 import { internetSearch } from './internet-search'
 import { uninstallMcpServer, listMcpServers, installMcpServer } from './mcp-manage'
@@ -29,7 +28,6 @@ export const toolsStore = {
   search_memories: searchMemories,
   fetch_raw_messages: fetchRawMessages,
   query_message_database: queryMessageDatabase,
-  search_emotion_log: searchEmotionLog,
   get_character_appearance: getCharacterAppearance,
   internet_search: internetSearch,
   list_mcp_servers: listMcpServers,
@@ -76,7 +74,6 @@ export const mainAgentToolList = [
   searchMemories,
   fetchRawMessages,
   queryMessageDatabase,
-  searchEmotionLog,
   getCharacterAppearance,
   internetSearch,
   pushAsyncTask,

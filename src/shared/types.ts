@@ -133,6 +133,8 @@ export type TaskRunningInfo = {
   taskId: string
   params: string
   agentId: string
+  agentGraph?: { nodes: any[]; edges: any[] } | null // agent 状态图数据
+  currentNode?: string | null // 当前节点名称
   status: 'waiting' | 'running' | 'completed' | 'stopped' | 'failed'
   toolsMessage: { id: string; name: string; params: string; content: string }[] 
   thinkMessage: string

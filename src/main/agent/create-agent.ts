@@ -30,6 +30,18 @@ function getCheckpointer(): SqliteSaver {
 // 创建 Agent 实例
 let _agent: DeepAgent | null = null
 let _agentVersion: string | null = null
+let _graphData: { nodes: any[]; edges: any[] } | null = null
+
+// 获取 Agent 图结构
+export function getGraphData() {
+  return _graphData
+}
+
+// 创建 Agent 实例
+// 每次 Agent 版本变化时，都需要重建 Agent
+// 每次 Agent 重建时，都需要重新获取 Agent 图结构
+// 每次 Agent 图结构变化时，都需要更新 Agent 图结构缓存
+// 每次 Agent 图结构变化时，都需要更新 Agent 图结构缓存
 export async function createAgent(config: ModelConfig): Promise<DeepAgent> {
   const currentVersion = getAgentVersion()
   if (_agent !== null && currentVersion === _agentVersion) {
@@ -64,6 +76,7 @@ export async function createAgent(config: ModelConfig): Promise<DeepAgent> {
       uninstall_mcp_server: { allowedDecisions: ['approve', 'reject'] }
     }
   }) as unknown as DeepAgent
+
 
   broadcast('agent:rebuilding', { status: 'done' })
   return _agent

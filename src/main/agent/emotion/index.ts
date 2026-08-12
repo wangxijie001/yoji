@@ -14,25 +14,6 @@ export const getCurrentEmotionInfo = () => currentEmotion
 // 激素变化步长：反映每种激素的自然波动幅度
 // 兴奋类波动快、压力类快速积累、信任类缓慢变化、节律类幅度大
 export type Incretion = 'dopamine' | 'serotonin' | 'gaba' | 'cortisol' | 'adrenaline' | 'oxytocin' | 'endorphin'| 'melatonin'
-// type IncretionParams = {
-//   name: string
-//   heigh: number
-//   mid: number
-//   low: number
-//   max: number
-//   min: number
-// }
-
-// const incretion_step: Record<Incretion, IncretionParams> = {
-//   dopamine: { name: '多巴胺', heigh: 6, mid: 4, low: 2, max: 100, min: 0 }, // 兴奋/好奇
-//   serotonin: { name: '血清素', heigh: 4, mid: 2, low: 1, max: 100, min: 0 }, // 心理满足
-//   gaba: { name: 'GABA', heigh: 4, mid: 2, low: 1, max: 100, min: 0 }, // 身体松弛
-//   cortisol: { name: '皮质醇', heigh: 5, mid: 3, low: 1, max: 100, min: 0 }, // 压力积累
-//   adrenaline: { name: '肾上腺素', heigh: 8, mid: 5, low: 2, max: 100, min: 0 }, // 瞬时应激
-//   oxytocin: { name: '催产素', heigh: 4, mid: 3, low: 2, max: 100, min: 0 }, // 信任依恋
-//   endorphin: { name: '内啡肽', heigh: 5, mid: 3, low: 1, max: 100, min: 0 }, // 愉悦舒适
-//   melatonin: { name: '褪黑素', heigh: 50, mid: 30, low: 10, max: 100, min: 0 } // 昼夜节律
-// }
 
 //上一次查询天气的时间戳
 let get_weather_at = 0

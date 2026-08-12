@@ -3,9 +3,9 @@ import styles from './TaskMonitor.module.css'
 import { Tooltip, TooltipProps } from 'antd'
 import agentApi from "../../api/agent";
 import { TaskRunningInfo } from '@shared/types';
-import MainMessage from './components/mainMessage';
+import MainMessage from './components/MainMessage';
 import dayjs from 'dayjs';
-import ToolMessage from './components/toolMessage';
+import ToolMessage from './components/ToolMessage';
 
 
 const taskStatus = {
@@ -166,6 +166,8 @@ const TaskMonitor = () => {
                                 agentName={taskDetail.agentName || ''}
                                 agentDesc={taskDetail.agentDesc || ''}
                                 thinkMessage={taskDetail.thinkMessage || ''}
+                                agentGraph={taskDetail.agentGraph ? JSON.stringify(taskDetail.agentGraph) : ''}
+                                currentNode={taskDetail.currentNode || null}
                                 message={taskDetail.mainMessage || ''} />
                         </div>
                         <div className={styles.taskInfo}>

@@ -10,13 +10,15 @@ import { tts } from './utils/tts'
 import { createAgent } from './create-agent'
 import { envConfig } from '../config'
 import dayjs from 'dayjs'
-import { updateTaskRunningInfo } from './task-monitor'
+import { getAgentGraph, updateTaskRunningInfo } from './task-monitor'
 import { v4 as uuidv4 } from 'uuid'
 
 
 // 固定线程 ID——整个应用只有这一条持续对话
 const THREAD_ID = 'companion'
 const threadConfig = { configurable: { thread_id: THREAD_ID } }
+// agent 状态图数据
+let _agentGraph: { nodes: any[]; edges: any[] } | null = null
 
 // 便捷方法：将简单的 { role, content } 转换为 LangChain 消息类型
 export async function chat(config: ModelConfig, messages: ChatMessage[]) {
@@ -44,6 +46,9 @@ export async function chatStream(
   signal?: AbortSignal
 ): Promise<void> {
   const agent = await createAgent(config)
+  if (!_agentGraph) {
+    _agentGraph = await getAgentGraph(agent)
+  }
   const _taskUuid = uuidv4()
   let userMessage = ''
   /** 中断审批决策，仅 role='user' 且有未处理中断时传 */
@@ -67,6 +72,8 @@ export async function chatStream(
         taskId: 'main:' + _taskUuid,
         params:JSON.stringify(m),
         agentId:"yoji",
+        agentGraph: _agentGraph,
+        currentNode: null,
         status: 'running',
         toolsMessage: [],
         thinkMessage: '',
@@ -168,6 +175,13 @@ export async function chatStream(
 
       // 2. 处理节点更新：监控工具调用详细信息
       if (mode === 'updates') {
+
+        // 节点名是 data 的 key（如 'model_request'、'tools'），记录给状态图高亮
+        const nodeKeys = Object.keys(data || {})
+        if (nodeKeys.length > 0) {
+          updateTaskRunningInfo('main:' + _taskUuid, { currentNode: nodeKeys[0] })
+        }
+
         // 检查是否有节点执行了 tool 调用
         if (data.tools) {
           const toolMessages = data.tools.messages || []
@@ -248,7 +262,7 @@ export async function chatStream(
     }
 
     callbacks.onDone()
-    updateTaskRunningInfo('main:' + _taskUuid, { status:'completed' })
+    updateTaskRunningInfo('main:' + _taskUuid, { status:'completed',currentNode: '__end__' })
     //播放剩余半句
     tts.flush()
     //清理checkpoint快照

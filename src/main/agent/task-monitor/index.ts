@@ -1,10 +1,8 @@
-import { ChildAgentConfig, TaskRunningInfo } from '../../../shared/types';
-import { childrenAgentConfig } from '../../config';
+import { ChildAgentConfig, TaskRunningInfo } from '../../../shared/types'
+import { childrenAgentConfig } from '../../config'
 import { readTemp, writeTemp } from '../../utils/tem-file-manage'
 
 type ToolMessage = { id: string; name: string; params: string; content: string }
-
-
 
 // 增量更新入参：顶层字段可选；toolsMessage 的每一项 id 必填、其余字段可选（只传要改的）
 type TaskRunningInfoPatch = Partial<Omit<TaskRunningInfo, 'toolsMessage'>> & {
@@ -45,6 +43,8 @@ export const updateTaskRunningInfo = async (taskId: string, info: TaskRunningInf
   }
   if (info.thinkMessage !== undefined) prev.thinkMessage += info.thinkMessage
   if (info.mainMessage !== undefined) prev.mainMessage += info.mainMessage
+  if (info.agentGraph !== undefined) prev.agentGraph = info.agentGraph
+  if (info.currentNode !== undefined) prev.currentNode = info.currentNode
 
   if (info.status === 'completed' || info.status === 'stopped' || info.status === 'failed') {
     prev.endTime = Date.now()
@@ -63,15 +63,18 @@ export const queryTaskQueue = (taskId?: string) => {
     const runingTask = taskRunningInfoCache.get(taskId) || null
     if (runingTask) {
       const agent = childrenAgentConfig.get(runingTask.agentId) as ChildAgentConfig
-      return {...runingTask, agentName: agent?.name || '',agentDesc: agent?.description || ''}
+      return { ...runingTask, agentName: agent?.name || '', agentDesc: agent?.description || '' }
     }
 
     const temTask = readTemp(`tasks/${taskId}.json`) || null
 
     if (temTask) {
-        const _result = JSON.parse(temTask)
-        const agent = _result.agentId === 'yoji' ? {name:'yoji',description:'智能助手'}  : childrenAgentConfig.get(_result.agentId) as ChildAgentConfig
-      return {..._result, agentName: agent?.name || '',agentDesc: agent?.description || ''}
+      const _result = JSON.parse(temTask)
+      const agent =
+        _result.agentId === 'yoji'
+          ? { name: 'yoji', description: '智能助手' }
+          : (childrenAgentConfig.get(_result.agentId) as ChildAgentConfig)
+      return { ..._result, agentName: agent?.name || '', agentDesc: agent?.description || '' }
     }
     return null
   }
@@ -79,4 +82,30 @@ export const queryTaskQueue = (taskId?: string) => {
     taskId,
     status
   }))
+}
+
+//获取agent状态图
+export const getAgentGraph = async (agent: any): Promise<{ nodes: any[]; edges: any[] } | null> => {
+  // 缓存在内存，图结构只在 Agent 重建时变化
+  let graphData: { nodes: any[]; edges: any[] } | null = null
+  try {
+    const drawableGraph = await (agent as any).getGraphAsync()
+    graphData = {
+      nodes: Object.keys(drawableGraph.nodes || {}).map((name) => ({
+        id: name,
+        shape: 'node' as const,
+        data: { name, type: drawableGraph.nodes[name].data?.id?.[1] || '' }
+      })),
+      edges: (drawableGraph.edges || []).map((e: any) => ({
+        id: `${e.source}→${e.target}`,
+        shape: 'edge' as const,
+        source: e.source,
+        target: e.target,
+        data: { conditional: e.conditional }
+      }))
+    }
+  } catch (e) {
+    console.error('[agent-graph] dump failed:', e)
+  }
+  return graphData
 }

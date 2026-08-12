@@ -153,3 +153,16 @@
     }
 
 }
+/* X6 选中框样式（Agent 状态图高亮） */
+:global(.x6-widget-selection-box) {
+    border: 2px dashed var(--default-hover-text-color) !important;
+    border-radius: 10px;
+    background: rgba(182, 249, 249, 0.5) !important;
+    box-shadow: 0 0 12px var(--default-hover-text-color);
+    animation: agentGraphPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes agentGraphPulse {
+    0%, 100% { box-shadow: 0 0 8px rgba(187, 247, 247, 0.5); }
+    50% { box-shadow: 0 0 18px var(--default-hover-text-color); }
+}
